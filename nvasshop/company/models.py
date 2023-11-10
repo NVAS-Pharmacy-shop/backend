@@ -8,6 +8,7 @@ class Company(models.Model):
     address = models.CharField(max_length=50)
     email = models.CharField(max_length=50)
     website = models.CharField(max_length=50)
+    rate = models.DecimalField(max_digits=3, decimal_places=1, default=0.0)
 
 
 class Equipment(models.Model):
