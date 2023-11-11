@@ -5,6 +5,6 @@ from .views import Company
 
 app_name = "company"
 urlpatterns = [
-    path("all/", Company.as_view(), name='company-get'),
-    path("updateCompany/<int:id>/", Company.as_view(), name='company-update'),
+    path("<int:id>/", Company.as_view()),
+    path("", Company.as_view()),
 ]
