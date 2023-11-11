@@ -12,11 +12,8 @@ class Company(models.Model):
 
 
 class Equipment(models.Model):
+    company = models.ForeignKey(Company, related_name='equipment', on_delete=models.CASCADE, default=0)
     name = models.CharField(max_length=50)
     description = models.CharField(max_length=50)
-
-
-class Company_Equipment(models.Model):
-    company = models.ForeignKey('Company', on_delete=models.CASCADE)
-    equipment = models.ForeignKey('Equipment', on_delete=models.CASCADE)
     quantity = models.IntegerField(default=0)
+

@@ -5,7 +5,15 @@ from rest_framework.views import APIView
 from rest_framework import status
 from . import models
 from . import serializers
-class Company(APIView):
+from rest_framework.permissions import IsAuthenticated
+from auth.custom_permissions import IsCompanyAdmin
+from shared.mixins import PermissionPolicyMixin
+
+class Company(PermissionPolicyMixin, APIView):
+    permission_classes_per_method = {
+        "get": [IsAuthenticated, IsCompanyAdmin],
+        "put": [IsAuthenticated, IsCompanyAdmin]
+    }
     def get(self, request, id=None):
         if id:
             try:
