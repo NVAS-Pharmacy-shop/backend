@@ -6,7 +6,6 @@ from . import serializers
 from rest_framework.permissions import IsAuthenticated
 from auth.custom_permissions import IsSystemAdmin
 from django.shortcuts import get_object_or_404
-class User(APIView):
 from shared.mixins import PermissionPolicyMixin
 
 class User(PermissionPolicyMixin, APIView):
