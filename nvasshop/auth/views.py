@@ -12,11 +12,14 @@ from datetime import datetime
 
 @api_view(['POST'])
 def signup(request):
+    print(request.body)
     serializer = UserSerializer(data=request.data)
     if serializer.is_valid():
+        print('eeee')
         serializer.save()
         user = User.objects.get(email=request.data['email'])
         user.set_password(request.data['password'])
+        user.role = 'employee'
         user.save()
         return Response({'user': serializer.data})
     return Response(serializer.errors, status=status.HTTP_200_OK)
