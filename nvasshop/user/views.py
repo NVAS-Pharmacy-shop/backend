@@ -1,8 +1,3 @@
-from django.shortcuts import render
-
-# Create your views here.
-
-from rest_framework.decorators import permission_classes
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework import status
@@ -11,9 +6,13 @@ from . import serializers
 from rest_framework.permissions import IsAuthenticated
 from auth.custom_permissions import IsSystemAdmin
 
-class User(APIView):
+from shared.mixins import PermissionPolicyMixin
 
+class User(PermissionPolicyMixin, APIView):
 
+    permission_classes_per_method = {
+        "get": [IsAuthenticated],
+    }
 
     def get(self, request, id=None):
         print(request.META)
