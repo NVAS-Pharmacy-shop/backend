@@ -119,6 +119,17 @@ TEMPLATES = [
     },
 ]
 
+#EMAIL SETTINGS
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_FROM = 'slobodanobradovic24@gmail.com'
+EMAIL_HOST_USER = 'slobodanobradovic24@gmail.com'
+EMAIL_HOST_PASSWORD = 'bpwzyoxdvsbnwupp'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+
+PASSWORD_RESET_TIMEOUT = 144400
+
 WSGI_APPLICATION = 'nvasshop.wsgi.application'
 
 
