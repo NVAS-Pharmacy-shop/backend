@@ -38,10 +38,8 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-
     'user',
     'company',
-
     'rest_framework',
     'rest_framework_simplejwt.token_blacklist',
     'corsheaders',
@@ -51,9 +49,9 @@ CORS_ALLOWED_ORIGINS = [
     'http://localhost:3000',
 ]
 
+
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
-
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     )
 }
@@ -90,15 +88,14 @@ SIMPLE_JWT = {
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-
-    "corsheaders.middleware.CorsMiddleware",
-    'django.middleware.common.CommonMiddleware',
-
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
+    'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+
 ]
 
 ROOT_URLCONF = 'nvasshop.urls'
@@ -149,7 +146,6 @@ DATABASES = {
 
 AUTH_USER_MODEL = "user.User"
 
-
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
 
@@ -174,7 +170,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'CET'
 
 USE_I18N = True
 
@@ -190,3 +186,8 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",  # Adjust this to your React app's origin
+]
