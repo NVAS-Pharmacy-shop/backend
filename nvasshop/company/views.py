@@ -11,7 +11,7 @@ from shared.mixins import PermissionPolicyMixin
 
 class Company(PermissionPolicyMixin, APIView):
     permission_classes_per_method = {
-        "get": [IsAuthenticated, IsCompanyAdmin],
+        "get": [IsAuthenticated],
         "put": [IsAuthenticated, IsCompanyAdmin]
     }
     def get(self, request, id=None):
