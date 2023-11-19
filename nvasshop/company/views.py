@@ -1,6 +1,5 @@
 from django.shortcuts import render, get_object_or_404
 from rest_framework.response import Response
-# Create your views here.
 from rest_framework.views import APIView
 from rest_framework import status
 from . import models
@@ -14,6 +13,7 @@ class Company(PermissionPolicyMixin, APIView):
         "get": [IsAuthenticated, IsCompanyAdmin],
         "put": [IsAuthenticated, IsCompanyAdmin]
     }
+
     def get(self, request, id=None):
         if id:
             try:
@@ -35,4 +35,19 @@ class Company(PermissionPolicyMixin, APIView):
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_200_OK)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)    
+    
+class Equipment(APIView):
+    def get(self, request):
+        filters = {}
+        if 'company_id' in request.GET:
+            filters['company_id'] = request.GET['company_id']
+        if 'name_substring' in request.GET:
+            filters['name__icontains'] = request.GET['name_substring']
+        if 'type' in request.GET:
+            filters['type'] = request.GET['type']
+
+        equipment = models.Equipment.objects.filter(**filters)
+
+        serializer = serializers.EquipmentSerializer(equipment, many=True)
+        return Response({'msg': 'get matching equipment', 'equipment': serializer.data}, status=status.HTTP_200_OK)
