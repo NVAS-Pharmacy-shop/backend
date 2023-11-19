@@ -15,7 +15,7 @@ class CompanySerializer(serializers.ModelSerializer):
     equipment = EquipmentSerializer(many=True, read_only=True)
     class Meta:
         model = models.Company
-        fields = ['id', 'name', 'address', 'email', 'website', 'rate', 'equipment', ]
+        fields = ['id', 'name', 'address', 'email', 'website', 'rate', 'description', 'equipment', ]
 
 class CompanyBaseInfoSerializer(serializers.ModelSerializer):
     class Meta:

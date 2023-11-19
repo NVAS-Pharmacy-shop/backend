@@ -9,4 +9,5 @@ urlpatterns = [
     path("", Company.as_view()),
     path("equipment/", Equipment.as_view()),
     path("base_info/<int:id>", views.CompanyBaseInfo.as_view()),
+    path("base_info/", views.CompanyBaseInfo.as_view()),
 ]
