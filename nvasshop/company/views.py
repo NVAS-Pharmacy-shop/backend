@@ -11,7 +11,7 @@ from shared.mixins import PermissionPolicyMixin
 class Company(PermissionPolicyMixin, APIView):
     permission_classes_per_method = {
         "get": [IsAuthenticated, IsCompanyAdmin],
-        "put": [IsAuthenticated, IsCompanyAdmin]
+        "put": [IsAuthenticated, IsCompanyAdmin],
     }
 
     def get(self, request, id=None):
@@ -35,7 +35,7 @@ class Company(PermissionPolicyMixin, APIView):
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_200_OK)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)    
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
 class Equipment(APIView):
     def get(self, request):
@@ -46,8 +46,18 @@ class Equipment(APIView):
             filters['name__icontains'] = request.GET['name_substring']
         if 'type' in request.GET:
             filters['type'] = request.GET['type']
+        if 'company_rating' in request.GET:
+            filters['company__rate__gte'] = request.GET['company_rating']
 
         equipment = models.Equipment.objects.filter(**filters)
-
         serializer = serializers.EquipmentSerializer(equipment, many=True)
         return Response({'msg': 'get matching equipment', 'equipment': serializer.data}, status=status.HTTP_200_OK)
+    
+class CompanyBaseInfo(APIView):
+    def get(self, request, id):
+        try:
+            company = models.Company.objects.get(id=id)
+            serializer = serializers.CompanyBaseInfoSerializer(company)
+            return Response({'msg': 'get company', 'company': serializer.data}, status=status.HTTP_200_OK)
+        except models.Company.DoesNotExist:
+            return Response({'error': 'Company not found'}, status=status.HTTP_404_NOT_FOUND)
