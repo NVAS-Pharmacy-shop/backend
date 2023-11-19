@@ -6,9 +6,11 @@ from rest_framework_simplejwt.views import TokenObtainPairView
 
 from django.contrib.auth.tokens import default_token_generator
 from django.core.mail import send_mail
+from django.core.exceptions import ObjectDoesNotExist
 
-from .serializers import UserSerializer
+from .serializers import CompanyAdminSerializer, UserSerializer
 from user.models import User
+from company.models import Company
 
 from datetime import datetime
 
@@ -39,6 +41,28 @@ def signup(request):
 
         return Response({'user': serializer.data})
     return Response(serializer.errors, status=status.HTTP_200_OK)
+
+@api_view(['POST'])
+def registerCompanyAdmin(request):
+    serializer = CompanyAdminSerializer(data=request.data)
+    if serializer.is_valid():       
+        serializer.save()
+        try:
+            user = User.objects.get(email=request.data['email'])
+            company = Company.objects.get(id=request.data['company'])
+        except ObjectDoesNotExist:
+            return Response({'error': 'Company does not exist'}, status=status.HTTP_404_NOT_FOUND)
+
+        user.set_password(request.data['password'])
+        user.is_active = True
+        user.role = 'company_admin'
+        user.company = company
+        user.save()
+        return Response({'user': serializer.data}, status=status.HTTP_201_CREATED)
+
+    if User.objects.filter(email=request.data['email']).exists():
+        return Response({'error': 'Email already exists.'}, status=status.HTTP_400_BAD_REQUEST) 
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['GET'])
 def activate(request):
