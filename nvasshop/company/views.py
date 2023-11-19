@@ -1,12 +1,11 @@
 from django.shortcuts import render, get_object_or_404
 from rest_framework.response import Response
-# Create your views here.
 from rest_framework.views import APIView
 from rest_framework import status
 from . import models
 from . import serializers
 from rest_framework.permissions import IsAuthenticated
-from auth.custom_permissions import IsCompanyAdmin
+from auth.custom_permissions import IsCompanyAdmin, IsSystemAdmin
 from shared.mixins import PermissionPolicyMixin
 
 class Company(PermissionPolicyMixin, APIView):
@@ -14,6 +13,7 @@ class Company(PermissionPolicyMixin, APIView):
         "get": [IsAuthenticated],
         "put": [IsAuthenticated, IsCompanyAdmin]
     }
+
     def get(self, request, id=None):
         if id:
             try:
@@ -36,3 +36,52 @@ class Company(PermissionPolicyMixin, APIView):
             serializer.save()
             return Response(serializer.data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    def _validate_required_fields(self, data):
+        required_fields = ['name', 'address', 'description', 'website', 'email']
+        for field in required_fields:
+            if field not in data:
+                return False, f'{field} is required'
+        return True, None
+
+    def post(self, request):
+        is_valid, error_message = self._validate_required_fields(request.data)
+
+        if not is_valid:
+            return Response({'error': error_message}, status=status.HTTP_400_BAD_REQUEST)
+
+        serializer = serializers.CompanySerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({'msg': 'create company', 'company': serializer.data}, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+class Equipment(APIView):
+    def get(self, request):
+        filters = {}
+        if 'company_id' in request.GET:
+            filters['company_id'] = request.GET['company_id']
+        if 'name_substring' in request.GET:
+            filters['name__icontains'] = request.GET['name_substring']
+        if 'type' in request.GET:
+            filters['type'] = request.GET['type']
+        if 'company_rating' in request.GET:
+            filters['company__rate__gte'] = request.GET['company_rating']
+
+        equipment = models.Equipment.objects.filter(**filters)
+        serializer = serializers.EquipmentSerializer(equipment, many=True)
+        return Response({'msg': 'get matching equipment', 'equipment': serializer.data}, status=status.HTTP_200_OK)
+    
+class CompanyBaseInfo(APIView):
+    def get(self, request, id=None):
+        if id:
+            try:
+                company = models.Company.objects.get(id=id)
+                serializer = serializers.CompanyBaseInfoSerializer(company)
+                return Response({'msg': 'get company', 'company': serializer.data}, status=status.HTTP_200_OK)
+            except models.Company.DoesNotExist:
+                return Response({'error': 'Company not found'}, status=status.HTTP_404_NOT_FOUND)
+        else:
+            companies = models.Company.objects.all()
+            serializer = serializers.CompanyBaseInfoSerializer(companies, many=True)
+            return Response({'msg': 'get all companies', 'companies': serializer.data}, status=status.HTTP_200_OK)
