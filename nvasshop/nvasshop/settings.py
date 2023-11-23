@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'user',
     'rest_framework',
+    'drf_yasg',
     'rest_framework_simplejwt.token_blacklist',
     'corsheaders',
 ]
@@ -103,7 +104,9 @@ ROOT_URLCONF = 'nvasshop.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [
+            'nvasshop/templates',
+        ],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [

@@ -1,7 +1,7 @@
 from django.urls import path
 
 from . import views
-from .views import Company, Equipment
+from .views import Company, Equipment, Reserve_equipment
 
 app_name = "company"
 urlpatterns = [
@@ -10,4 +10,5 @@ urlpatterns = [
     path("equipment/", Equipment.as_view()),
     path("base_info/<int:id>", views.CompanyBaseInfo.as_view()),
     path("base_info/", views.CompanyBaseInfo.as_view()),
+    path("reserve/", Reserve_equipment.as_view()),
 ]
