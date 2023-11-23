@@ -57,7 +57,7 @@ class Reserve_equipment(PermissionPolicyMixin, APIView):
         with atomic():
             reservation = models.EquipmentReservation.objects.create(
                 user=user,
-                date=datetime.datetime.now(),
+                date=date,
                 status=models.EquipmentReservation.EquipmentStatus.PENDING,
             )
 

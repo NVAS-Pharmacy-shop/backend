@@ -40,7 +40,7 @@ class EquipmentReservation(models.Model):
         CANCELED = 'canceled'
 
     user = models.ForeignKey('user.User', related_name='user_reservations', on_delete=models.CASCADE, default=0)
-    date = models.DateField()
+    date = models.DateTimeField()
     status = models.CharField(max_length=15, choices=EquipmentStatus.choices, default=EquipmentStatus.PENDING)
 
 class ReservedEquipment(models.Model):
