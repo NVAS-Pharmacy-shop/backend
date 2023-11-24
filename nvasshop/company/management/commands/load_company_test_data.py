@@ -31,7 +31,7 @@ def add_test_data():
     Equipment.objects.create(company=company3, name='Vital Sign Monitors', description='Monitors for measuring vital signs', quantity=7, type=EquipmentType.MONITORING_EQUIPMENT)
     Equipment.objects.create(company=company3, name='Laser Surgical Tools', description='Precision laser tools for surgical procedures', quantity=9, type=EquipmentType.SURGICAL_EQUIPMENT)
 
-    EquipmentReservation.objects.create(equipment=equipment1, user=User.objects.get(pk=1), date='2023-10-10', status=EquipmentReservation.EquipmentStatus.PENDING, quantity=1)
+    # EquipmentReservation.objects.create(equipment=equipment1, user=User.objects.get(pk=1), date='2023-10-10', status=EquipmentReservation.EquipmentStatus.PENDING, quantity=1)
 
 class Command(BaseCommand):
     help = 'Deletes all data and loads test data into the database'
