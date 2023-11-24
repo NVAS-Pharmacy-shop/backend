@@ -1,3 +1,5 @@
+from threading import Thread
+
 from asgiref.sync import sync_to_async
 from rest_framework.decorators import api_view, action
 from rest_framework.response import Response
@@ -32,13 +34,16 @@ def signup(request):
         activate_link_url = 'http://localhost:8000/api/auth/activate_token'
         actiavation_link = f'{activate_link_url}?user_id={user.id}&confirmation_token={confirmation_token}'
         # sync_to_async(
+        email = Thread(target=send_mail, args=("ACTIVATE ACCOUNT", actiavation_link,
+                                               "slobodanobradovic3@gmail.com", [str(user.email)], False))
+        email.start()
         # send_mail(
         # "ACTIVATE ACCOUNT",
         # actiavation_link,
         # "slobodanobradovic3@gmail.com",
         # [str(user.email)],
         # fail_silently=False,
-        # ))
+        # )
 
         return Response({'user': serializer.data})
     return Response(serializer.errors, status=status.HTTP_200_OK)
