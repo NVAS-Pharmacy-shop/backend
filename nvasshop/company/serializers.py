@@ -4,7 +4,7 @@ from . import models
 class EquipmentSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.Equipment
-        fields = ['id', 'name', 'description', 'quantity', 'type']
+        fields = ['id', 'name', 'description', 'quantity', 'type', 'company']
 
 class PickupScheduleSerializer(serializers.ModelSerializer):
     class Meta:
