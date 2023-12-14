@@ -28,7 +28,8 @@ class Equipment(models.Model):
 
 class PickupSchedule(models.Model):
     company = models.ForeignKey(Company, related_name='pickup_schedules', on_delete=models.CASCADE, default=0)
-    administrator_name = models.CharField(max_length=30)
+    administrator_firstName = models.CharField(max_length=30, default="")
+    administrator_lastName = models.CharField(max_length=30, default="")
     date = models.DateField()
     start_time = models.TimeField()
     duration_minutes = models.IntegerField()
