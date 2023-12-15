@@ -12,7 +12,8 @@ from auth.custom_permissions import IsCompanyAdmin
 class User(PermissionPolicyMixin, APIView):
 
     permission_classes_per_method = {
-        "get": [IsAuthenticated]
+        "get": [IsAuthenticated],
+        "put": [IsAuthenticated],
     }
     def get(self, request, id=None):
         print(request.META)
@@ -32,12 +33,18 @@ class User(PermissionPolicyMixin, APIView):
 
     def put(self, request, id=None):
         if not request.user.is_authenticated:
-            return Response({'error' : 'Authentication required'}, status=status.HTTP_401_UNAUTHORIZED)
-        if request.user.role != models.User.Role.COMPANY_ADMIN:
-            return Response({'error': 'Permission denied. Company admin role required.'},
+            return Response({'error': 'Authentication required'}, status=status.HTTP_401_UNAUTHORIZED)
+        # if request.user.role != models.User.Role.COMPANY_ADMIN:
+        #     return Response({'error': 'Permission denied. Company admin role required.'},
+        #                     status=status.HTTP_403_FORBIDDEN)
+        if id != request.user.id:
+            return Response({'error': 'Permission denied. You can only update your own profile.'},
                             status=status.HTTP_403_FORBIDDEN)
         if id:
-            user = get_object_or_404(User, id=id)
+            try:
+                user = models.User.objects.get(id=id)
+            except models.User.DoesNotExist:
+                return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
             serializer = serializers.UserSerializer(user, data = request.data, partial=True)
             if serializer.is_valid():
                 serializer.save()
@@ -54,7 +61,7 @@ class CompanyAdmin(PermissionPolicyMixin, APIView):
     }
     def get(self, request, company_id=None):
         if company_id:
-            users = models.User.objects.filter(company_id=company_id).exclude(id=request.user.id)
+            users = models.User.objects.filter(company_id=company_id)
             serializer = serializers.CompanyAdminSerializer(users, many=True)
             return Response({'msg': 'get all user', 'user': serializer.data}, status=status.HTTP_200_OK)
         else:
