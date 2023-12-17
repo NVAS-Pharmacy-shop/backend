@@ -72,3 +72,18 @@ class CompanyAdmin(PermissionPolicyMixin, APIView):
             return Response({'error': 'Invalid data', 'details': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
         except User.DoesNotExists:
             return Http404("Given query not found....")
+
+
+    def changePassword(self, request):
+        try:
+            user = User.objects.get(email=request.data['email'])
+            user.set_password(request.data['password'])
+            user.save()
+            serializer = serializers.UserSerializer(user, data=request.data, partial=True)
+            if serializer.is_valid():
+                serializer.save()
+                return Response({'msg': 'Password updated', 'user': serializer.data},
+                        status=status.HTTP_200_OK)
+            return Response({'error': 'Invalid data', 'details': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+        except User.DoesNotExists:
+            return Http404("Given query not found....")

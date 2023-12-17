@@ -81,6 +81,21 @@ def activate(request):
     user.save()
     return Response('Email successfully confirmed')
 
+@api_view(['POST'])
+def changePassword_SA(request):
+    user = User.objects.get(email=request.data['email'])
+    confirmation_token = default_token_generator.make_token(user)
+    updatePassword = 'http://localhost:8000/api/user/admins/updatePassword'
+    actiavation_link = f'{updatePassword}'
+
+    send_mail(
+        "Change Password",
+        actiavation_link,
+        "slobodanobradovic3@gmail.com",
+        [str(user.email)],
+        fail_silently=False,
+    )
+    return Response('Email sent.')
 class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
     @classmethod
     def get_token(cls, user):
