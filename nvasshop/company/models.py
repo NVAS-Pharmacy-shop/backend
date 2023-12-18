@@ -8,6 +8,7 @@ class Company(models.Model):
     website = models.CharField(max_length=50)
     rate = models.DecimalField(max_digits=3, decimal_places=1, default=0.0)
 
+
 class EquipmentType(models.IntegerChoices):
     DIAGNOSTIC_EQUIPMENT = 1, 'Diagnostic Equipment'
     MONITORING_EQUIPMENT = 2, 'Monitoring Equipment'

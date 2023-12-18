@@ -113,8 +113,8 @@ class PickupSchedule(PermissionPolicyMixin, APIView):
                 serializer = serializers.PickupScheduleSerializer(schedules, many=True)
                 return Response({'msg': 'get schedules', 'schedules': serializer.data}, status=status.HTTP_200_OK)
             else:
-                schedule = models.PickupSchedule.objects.get(id=id)
-                serializer = serializers.PickupScheduleSerializer(schedule)
+                schedule = models.PickupSchedule.objects.get(company_id=id)
+                serializer = serializers.PickupScheduleSerializer(schedule, many=True)
                 return Response({'msg': 'get schedule', 'schedule': serializer.data}, status=status.HTTP_200_OK)
         except models.PickupSchedule.DoesNotExist:
             raise Http404("Schedule not found")
