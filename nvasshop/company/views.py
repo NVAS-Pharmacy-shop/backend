@@ -134,7 +134,6 @@ class PickupSchedule(PermissionPolicyMixin, APIView):
         except Exception as e:
             return Response(str(e), status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-
 class Equipment_CompanyAdmin(APIView):
     permission_classes_per_method = {
         "get": [IsAuthenticated, IsCompanyAdmin],
@@ -192,4 +191,16 @@ class Equipment_CompanyAdmin(APIView):
         except Exception as e:
             return Response(str(e), status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-
+    def delete(self, request, id=None):
+        try:
+            if id is not None and request.user.role == 'company_admin':
+                # add checking if the schedule is created by user!
+                equipment = models.Equipment.objects.get(id=id)
+                equipment.delete()
+                return Response({'msg': 'Equipment deleted successfully'}, status=status.HTTP_204_NO_CONTENT)
+            else:
+                return Response({'error': 'Equipment ID is required'}, status=status.HTTP_400_BAD_REQUEST)
+        except models.PickupSchedule.DoesNotExist:
+            raise Http404("Schedule not found")
+        except Exception as e:
+            return Response({'error': f'An error occurred: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
