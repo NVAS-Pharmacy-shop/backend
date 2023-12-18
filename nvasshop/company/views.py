@@ -8,6 +8,7 @@ from django.shortcuts import get_object_or_404
 from rest_framework.permissions import IsAuthenticated
 from auth.custom_permissions import IsCompanyAdmin, IsSystemAdmin
 from shared.mixins import PermissionPolicyMixin
+from django.http import Http404
 
 class Company(PermissionPolicyMixin, APIView):
     permission_classes_per_method = {
@@ -105,6 +106,21 @@ class PickupSchedule(PermissionPolicyMixin, APIView):
         "get": [IsAuthenticated],
         "post": [IsAuthenticated, IsCompanyAdmin]
     }
+    def get(self, request, id=None):
+        try:
+            if id is None:
+                schedules = models.PickupSchedule.objects.filter(company_id=request.user.company.id)
+                serializer = serializers.PickupScheduleSerializer(schedules, many=True)
+                return Response({'msg': 'get schedules', 'schedules': serializer.data}, status=status.HTTP_200_OK)
+            else:
+                schedule = models.PickupSchedule.objects.get(id=id)
+                serializer = serializers.PickupScheduleSerializer(schedule)
+                return Response({'msg': 'get schedule', 'schedule': serializer.data}, status=status.HTTP_200_OK)
+        except models.PickupSchedule.DoesNotExist:
+            raise Http404("Schedule not found")
+        except Exception as e:
+            return Response({'error': f'An error occurred: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
     def post(self, request):
         try:
             data = request.data

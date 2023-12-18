@@ -11,6 +11,8 @@ urlpatterns = [
     path("base_info/<int:id>/", views.CompanyBaseInfo.as_view(), name="company-base-info-detail"),
     path("base_info/", views.CompanyBaseInfo.as_view(), name="company-base-info-list"),
     path("create-schedule/", views.PickupSchedule.as_view(), name="create-schedule"),
+    path("schedules/<int:id>/", views.PickupSchedule.as_view(), name="get-schedule"),
+    path("schedules/", views.PickupSchedule.as_view(), name="get-schedule"),
     path("equipment/admin/", views.Equipment_CompanyAdmin.as_view(), name="equipment-admin-list"),
     path("equipment/admin/<int:id>/", views.Equipment_CompanyAdmin.as_view(), name="equipment-admin-detail"),
 ]
