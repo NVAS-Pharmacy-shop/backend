@@ -25,6 +25,7 @@ class User(AbstractUser):
     is_active = models.BooleanField(default=True)
     date_joined = models.DateTimeField(default=timezone.now)
     company = models.ForeignKey('company.Company', on_delete=models.CASCADE, null=True, blank=True)
+    first_login = models.BooleanField(default=True)
 
     REQUIRED_FIELDS = [] #username (email u nasem slucaju) i pw ce svakako uvek biti required
     USERNAME_FIELD = "email"

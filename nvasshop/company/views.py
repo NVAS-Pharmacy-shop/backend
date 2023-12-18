@@ -17,7 +17,7 @@ class Company(PermissionPolicyMixin, APIView):
 
     def get(self, request, id=None):
         print(request.user.role)
-        if id:
+        if (id==None):
             if(request.user.role.__eq__('company_admin')):
                 try:
                     company = models.Company.objects.get(id=request.user.company.id)
@@ -25,7 +25,7 @@ class Company(PermissionPolicyMixin, APIView):
                     return Response({'msg': 'get company', 'company': serializer.data}, status=status.HTTP_200_OK)
                 except models.Company.DoesNotExist:
                     return Response({'error': 'Company not found'}, status=status.HTTP_404_NOT_FOUND)
-            else:
+        elif id:
                 try:
                     company = models.Company.objects.get(id=id)
                     serializer = serializers.CompanySerializer(company)

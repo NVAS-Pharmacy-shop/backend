@@ -8,7 +8,7 @@ from auth.custom_permissions import IsSystemAdmin
 from django.shortcuts import get_object_or_404
 from shared.mixins import PermissionPolicyMixin
 from auth.custom_permissions import IsCompanyAdmin
-
+from user.models import User
 class User(PermissionPolicyMixin, APIView):
 
     permission_classes_per_method = {
@@ -58,8 +58,8 @@ class CompanyAdmin(PermissionPolicyMixin, APIView):
             serializer = serializers.CompanyAdminSerializer(users, many=True)
             return Response({'msg': 'get all user', 'user': serializer.data}, status=status.HTTP_200_OK)
         else:
-            user = models.User.objects.get(id=request.user.id)
-            serializer = serializers.CompanyAdminSerializer(user)
+            users = models.User.objects.filter(company_id=request.user.company.id).exclude(id=request.user.id)
+            serializer = serializers.CompanyAdminSerializer(users, many=True)
             return Response({'msg': 'get all user', 'user': serializer.data}, status=status.HTTP_200_OK)
     def put(self, request):
         try:
@@ -70,20 +70,21 @@ class CompanyAdmin(PermissionPolicyMixin, APIView):
                 return Response({'msg': 'Company Admin user profile updated successfully', 'user': serializer.data},
                                 status=status.HTTP_200_OK)
             return Response({'error': 'Invalid data', 'details': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
-        except User.DoesNotExists:
+        except models.User.DoesNotExist:
             return Http404("Given query not found....")
 
-
-    def changePassword(self, request):
+class CompanyAdmin_PasswordChange(PermissionPolicyMixin, APIView):
+    permission_classes_per_method = {
+        "put": [IsAuthenticated, IsCompanyAdmin]
+    }
+    def put(self, request):
         try:
-            user = User.objects.get(email=request.data['email'])
+            user = models.User.objects.get(email=request.user.email)
             user.set_password(request.data['password'])
+            user.first_login = False
             user.save()
-            serializer = serializers.UserSerializer(user, data=request.data, partial=True)
-            if serializer.is_valid():
-                serializer.save()
-                return Response({'msg': 'Password updated', 'user': serializer.data},
-                        status=status.HTTP_200_OK)
-            return Response({'error': 'Invalid data', 'details': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
-        except User.DoesNotExists:
+            return Response({'msg': 'Company Admin user profile updated successfully'},
+                            status=status.HTTP_200_OK)
+        except models.User.DoesNotExist:
             return Http404("Given query not found....")
+

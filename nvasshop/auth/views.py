@@ -19,7 +19,6 @@ from datetime import datetime
 def signup(request):
     serializer = UserSerializer(data=request.data)
     if serializer.is_valid():
-        print('eeee')
         serializer.save()
         user = User.objects.get(email=request.data['email'])
         user.set_password(request.data['password'])
@@ -66,7 +65,6 @@ def registerCompanyAdmin(request):
 
 @api_view(['GET'])
 def activate(request):
-
     user_id = request.query_params.get('user_id', '')
     confirmation_token = request.query_params.get('confirmation_token', '')
     try:
@@ -81,21 +79,6 @@ def activate(request):
     user.save()
     return Response('Email successfully confirmed')
 
-@api_view(['POST'])
-def changePassword_SA(request):
-    user = User.objects.get(email=request.data['email'])
-    confirmation_token = default_token_generator.make_token(user)
-    updatePassword = 'http://localhost:8000/api/user/admins/updatePassword'
-    actiavation_link = f'{updatePassword}'
-
-    send_mail(
-        "Change Password",
-        actiavation_link,
-        "slobodanobradovic3@gmail.com",
-        [str(user.email)],
-        fail_silently=False,
-    )
-    return Response('Email sent.')
 class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
     @classmethod
     def get_token(cls, user):
@@ -106,6 +89,9 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
         # Token embedded fields
         token['email'] = user.email
         token['role'] = user.role
+        token['first_login'] = user.first_login
+
+        print(user.first_login)
 
         return token
 
