@@ -6,6 +6,7 @@ class EquipmentSerializer(serializers.ModelSerializer):
         model = models.Equipment
         fields = ['id','name', 'description', 'quantity', 'type', 'company']
 
+
 class PickupScheduleSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.PickupSchedule

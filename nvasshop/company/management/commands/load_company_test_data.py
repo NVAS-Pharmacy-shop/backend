@@ -1,10 +1,12 @@
 from django.core.management.base import BaseCommand
-from company.models import Company, Equipment, EquipmentType
+from company.models import Company, Equipment, EquipmentType, EquipmentReservation
+from user.models import User
 
 
 def delete_data():
     Equipment.objects.all().delete()
     Company.objects.all().delete()
+    EquipmentReservation.objects.all().delete()
 
 def add_test_data():
     company1 = Company.objects.create(name='Medical Solutions Inc.', address='123 Health Ave', description='Leading provider of medical solutions.', email='info@medicalsolutions.com', website='www.medicalsolutions.com', rate=4.5)
@@ -17,7 +19,7 @@ def add_test_data():
     company8 = Company.objects.create(name='Health Tech Systems', address='555 Health Smart Avenue', description='Smart solutions for a connected health world', email='info@healthtechsystems.com', website='www.healthtechsystems.com', rate=4.8)
 
 
-    Equipment.objects.create(company=company1, name='MRI Scanner', description='High-resolution magnetic resonance imaging scanner', quantity=10, type=EquipmentType.DIAGNOSTIC_EQUIPMENT)
+    equipment1 = Equipment.objects.create(company=company1, name='MRI Scanner', description='High-resolution magnetic resonance imaging scanner', quantity=10, type=EquipmentType.DIAGNOSTIC_EQUIPMENT)
     Equipment.objects.create(company=company1, name='Patient Monitors', description='Advanced patient monitoring system', quantity=5, type=EquipmentType.MONITORING_EQUIPMENT)
     Equipment.objects.create(company=company1, name='Surgical Robots', description='Robotic systems for minimally invasive surgery', quantity=3, type=EquipmentType.SURGICAL_EQUIPMENT)
 
@@ -28,6 +30,8 @@ def add_test_data():
     Equipment.objects.create(company=company3, name='X-ray Machines', description='State-of-the-art X-ray imaging machines', quantity=4, type=EquipmentType.DIAGNOSTIC_EQUIPMENT)
     Equipment.objects.create(company=company3, name='Vital Sign Monitors', description='Monitors for measuring vital signs', quantity=7, type=EquipmentType.MONITORING_EQUIPMENT)
     Equipment.objects.create(company=company3, name='Laser Surgical Tools', description='Precision laser tools for surgical procedures', quantity=9, type=EquipmentType.SURGICAL_EQUIPMENT)
+
+    # EquipmentReservation.objects.create(equipment=equipment1, user=User.objects.get(pk=1), date='2023-10-10', status=EquipmentReservation.EquipmentStatus.PENDING, quantity=1)
 
 class Command(BaseCommand):
     help = 'Deletes all data and loads test data into the database'
