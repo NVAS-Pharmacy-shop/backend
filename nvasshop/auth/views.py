@@ -1,4 +1,4 @@
-from rest_framework.decorators import api_view, action
+from rest_framework.decorators import api_view, action, permission_classes
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
@@ -7,6 +7,8 @@ from rest_framework_simplejwt.views import TokenObtainPairView
 from django.contrib.auth.tokens import default_token_generator
 from django.core.mail import send_mail
 from django.core.exceptions import ObjectDoesNotExist
+
+from .custom_permissions import IsSystemAdmin
 
 from .serializers import CompanyAdminSerializer, UserSerializer
 from user.models import User
@@ -42,6 +44,7 @@ def signup(request):
     return Response(serializer.errors, status=status.HTTP_200_OK)
 
 @api_view(['POST'])
+#@permission_classes([IsSystemAdmin])
 def registerCompanyAdmin(request):
     serializer = CompanyAdminSerializer(data=request.data)
     if serializer.is_valid():       
@@ -56,6 +59,24 @@ def registerCompanyAdmin(request):
         user.is_active = True
         user.role = 'company_admin'
         user.company = company
+        user.save()
+        return Response({'user': serializer.data}, status=status.HTTP_201_CREATED)
+
+    if User.objects.filter(email=request.data['email']).exists():
+        return Response({'error': 'Email already exists.'}, status=status.HTTP_400_BAD_REQUEST) 
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['POST'])
+#@permission_classes([IsSystemAdmin])
+def registerSystemAdmin(request):
+    serializer = UserSerializer(data=request.data)
+    if serializer.is_valid():       
+        serializer.save()
+
+        user = User.objects.get(email=request.data['email'])
+        user.set_password(request.data['password'])
+        user.is_active = True
+        user.role = 'system_admin'
         user.save()
         return Response({'user': serializer.data}, status=status.HTTP_201_CREATED)
 

@@ -35,3 +35,11 @@ class PickupSchedule(models.Model):
     start_time = models.TimeField()
     duration_minutes = models.IntegerField()
 
+    
+class EquipmentReservation(models.Model):
+    class EquipmentStatus(models.TextChoices):
+        PENDING = 'pending'
+        DELIVERED = 'delivered'
+        REJECTED = 'rejected'
+        CANCELED = 'canceled'
+
