@@ -1,12 +1,13 @@
-from datetime import time
-
 from django.core.management.base import BaseCommand
 from company.models import Company, Equipment, EquipmentType, PickupSchedule
+from company.models import Company, Equipment, EquipmentType, EquipmentReservation
+from user.models import User
 
 
 def delete_data():
     Equipment.objects.all().delete()
     Company.objects.all().delete()
+    EquipmentReservation.objects.all().delete()
 
 def add_test_data():
     company1 = Company.objects.create(name='Medical Solutions Inc.', address='123 Health Ave', description='Leading provider of medical solutions.', email='info@medicalsolutions.com', website='www.medicalsolutions.com', rate=4.5, start_time=time(8, 0, 0), end_time=time(16, 0, 0))

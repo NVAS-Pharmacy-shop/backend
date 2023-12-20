@@ -42,5 +42,19 @@ class PickupSchedule(models.Model):
     date = models.DateField()
     start_time = models.TimeField()
     duration_minutes = models.IntegerField()
-    status = models.CharField(choices=PickupStatus.choices, null=True)
 
+class EquipmentReservation(models.Model):
+    class EquipmentStatus(models.TextChoices):
+        PENDING = 'pending'
+        DELIVERED = 'delivered'
+        REJECTED = 'rejected'
+        CANCELED = 'canceled'
+
+    user = models.ForeignKey('user.User', related_name='user_reservations', on_delete=models.CASCADE, default=0)
+    date = models.DateTimeField()
+    status = models.CharField(max_length=15, choices=EquipmentStatus.choices, default=EquipmentStatus.PENDING)
+
+class ReservedEquipment(models.Model):
+    equipment = models.ForeignKey(Equipment, related_name='reserved_equipment', on_delete=models.CASCADE, default=0)
+    reservation = models.ForeignKey(EquipmentReservation, related_name='reserved_equipment', on_delete=models.CASCADE, default=0)
+    quantity = models.IntegerField(default=0)
