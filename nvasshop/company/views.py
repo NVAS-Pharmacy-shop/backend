@@ -17,30 +17,37 @@ class Company(PermissionPolicyMixin, APIView):
     }
 
     def get(self, request, id=None):
-        print(request.user.role)
         if (id==None):
             if(request.user.role.__eq__('company_admin')):
                 try:
-                    company = models.Company.objects.get(id=request.user.company.id)
+                    company = models.Company.objects.get(admin=request.user.id)
                     serializer = serializers.CompanySerializer(company)
                     return Response({'msg': 'get company', 'company': serializer.data}, status=status.HTTP_200_OK)
                 except models.Company.DoesNotExist:
                     return Response({'error': 'Company not found'}, status=status.HTTP_404_NOT_FOUND)
+            else:
+                queryparams = request.query_params
+                filters = {}
+                if 'name' in queryparams and queryparams['name'] != '':
+                    filters['name__icontains'] = queryparams['name']
+                if 'rating' in queryparams and queryparams['rating'] != '':
+                    filters['rate__gte'] = queryparams['rating']
+
+                companies = models.Company.objects.filter(**filters)
+                serializer = serializers.CompanySerializer(companies, many=True)
+                return Response({'msg': 'get all companies', 'company': serializer.data}, status=status.HTTP_200_OK)
         elif id:
-                try:
-                    company = models.Company.objects.get(id=id)
-                    serializer = serializers.CompanySerializer(company)
-                    return Response({'msg': 'get company', 'company': serializer.data}, status=status.HTTP_200_OK)
-                except models.Company.DoesNotExist:
-                    return Response({'error': 'Company not found'}, status=status.HTTP_404_NOT_FOUND)
-        else:
-            companies = models.Company.objects.all()
-            serializer = serializers.CompanySerializer(companies, many=True)
-            return Response({'msg': 'get all companies', 'company': serializer.data}, status=status.HTTP_200_OK)
+            try:
+                company = models.Company.objects.get(id=id)
+                serializer = serializers.CompanySerializer(company)
+                return Response({'msg': 'get company', 'company': serializer.data}, status=status.HTTP_200_OK)
+            except models.Company.DoesNotExist:
+                return Response({'error': 'Company not found'}, status=status.HTTP_404_NOT_FOUND)
+
     def put(self, request, id):
         try:
             company = models.Company.objects.get(id=id)
-        except Company.DoesNotExist:
+        except models.Company.DoesNotExist:
             return Response({'error': 'Company not found'}, status=status.HTTP_404_NOT_FOUND)
         serializer = serializers.CompanySerializer(company, data=request.data)
         if serializer.is_valid():
@@ -125,6 +132,7 @@ class PickupSchedule(PermissionPolicyMixin, APIView):
         try:
             data = request.data
             data['company'] = request.user.company.id
+            data['administrator'] = request.user.id
             serializer = serializers.PickupScheduleSerializer(data=data)
             if serializer.is_valid():
                 serializer.save()

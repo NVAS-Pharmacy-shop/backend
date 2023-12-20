@@ -9,5 +9,5 @@ class UserSerializer(serializers.ModelSerializer):
 class CompanyAdminSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.User
-        fields = ['first_name', 'last_name', 'email']
+        fields = ['id', 'first_name', 'last_name', 'email']
 
