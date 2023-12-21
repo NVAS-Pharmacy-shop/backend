@@ -1,3 +1,5 @@
+from datetime import time
+
 from django.core.management.base import BaseCommand
 from company.models import Company, Equipment, EquipmentType, PickupSchedule
 from company.models import Company, Equipment, EquipmentType, EquipmentReservation
@@ -32,9 +34,9 @@ def add_test_data():
     Equipment.objects.create(company=company3, name='Vital Sign Monitors', description='Monitors for measuring vital signs', quantity=7, type=EquipmentType.MONITORING_EQUIPMENT)
     Equipment.objects.create(company=company3, name='Laser Surgical Tools', description='Precision laser tools for surgical procedures', quantity=9, type=EquipmentType.SURGICAL_EQUIPMENT)
 
-    PickupSchedule.objects.create(company=company1, date='2021-05-01', start_time=time(8, 0, 0), duration_minutes=60)
-    PickupSchedule.objects.create(company=company2, date='2021-05-01', start_time=time(8, 0, 0), duration_minutes=60)
-    PickupSchedule.objects.create(company=company3, date='2021-05-01', start_time=time(8, 0, 0), duration_minutes=60)
+    # PickupSchedule.objects.create(company=company1, date='2021-05-01', start_time=time(8, 0, 0), duration_minutes=60)
+    # PickupSchedule.objects.create(company=company2, date='2021-05-01', start_time=time(8, 0, 0), duration_minutes=60)
+    # PickupSchedule.objects.create(company=company3, date='2021-05-01', start_time=time(8, 0, 0), duration_minutes=60)
 class Command(BaseCommand):
     help = 'Deletes all data and loads test data into the database'
 
