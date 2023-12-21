@@ -7,6 +7,8 @@ class Company(models.Model):
     email = models.CharField(max_length=50)
     website = models.CharField(max_length=50)
     rate = models.DecimalField(max_digits=3, decimal_places=1, default=0.0)
+    start_time = models.TimeField()
+    end_time = models.TimeField()
 
 
 class EquipmentType(models.IntegerChoices):
@@ -28,22 +30,23 @@ class Equipment(models.Model):
     )
 
 class PickupSchedule(models.Model):
-    company = models.ForeignKey(Company, related_name='pickup_schedules', on_delete=models.CASCADE, default=0)
-    administrator_firstName = models.CharField(max_length=30, default="")
-    administrator_lastName = models.CharField(max_length=30, default="")
+    company = models.ForeignKey(Company, related_name='pickup_schedules', on_delete=models.CASCADE)
+    company_admin = models.ForeignKey('user.User', related_name='admin_pickup', on_delete=models.CASCADE)
     date = models.DateField()
     start_time = models.TimeField()
-    duration_minutes = models.IntegerField()
-  
+    duration_minutes = models.TimeField()
+
+
 class EquipmentReservation(models.Model):
     class EquipmentStatus(models.TextChoices):
         PENDING = 'pending'
         DELIVERED = 'delivered'
         REJECTED = 'rejected'
         CANCELED = 'canceled'
-        
+
+    pickup_schedule = models.OneToOneField(PickupSchedule, related_name='equipment_reservation',
+                                           on_delete=models.CASCADE, null=True, blank=True)
     user = models.ForeignKey('user.User', related_name='user_reservations', on_delete=models.CASCADE, default=0)
-    date = models.DateTimeField()
     status = models.CharField(max_length=15, choices=EquipmentStatus.choices, default=EquipmentStatus.PENDING)
 
 class ReservedEquipment(models.Model):

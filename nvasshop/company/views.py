@@ -5,9 +5,9 @@ from io import BytesIO
 
 import qrcode
 from django.core.mail import send_mail, EmailMessage
+from django.db.models import Prefetch, Q, F
 from django.db.transaction import atomic
-from django.shortcuts import render, get_object_or_404
-from django.template.loader import render_to_string
+from django.shortcuts import get_object_or_404
 from django.utils.dateparse import parse_datetime
 from django.utils.html import strip_tags
 from rest_framework.response import Response
@@ -16,15 +16,15 @@ from rest_framework.views import APIView
 from rest_framework import status
 from . import models
 from . import serializers
-from django.shortcuts import get_object_or_404
 from rest_framework.permissions import IsAuthenticated
 from auth.custom_permissions import IsCompanyAdmin, IsSystemAdmin
 from shared.mixins import PermissionPolicyMixin
 from django.http import Http404
 from drf_yasg.utils import swagger_auto_schema
 from multiprocessing import Process
+from user.models import User
+
 from .mail import send_reservation_email
-from .serializers import EquipmentSerializer
 
 
 class Reserve_equipment(PermissionPolicyMixin, APIView):
@@ -35,14 +35,17 @@ class Reserve_equipment(PermissionPolicyMixin, APIView):
     def post(self, request):
         user = request.user
         reserved_equipments = request.data['equipments']
-        company_id = request.data['company_id']
-        date = parse_datetime(request.data['date'])
-
-        # if date < datetime.datetime.now():
-        #     return Response({'error': 'Date is in the past'}, status=status.HTTP_400_BAD_REQUEST)
+        company_id = None
+        if 'company_id' in request.data:
+            company_id = request.data['company_id']
+        date = None
+        if 'date' in request.data:
+            date = request.data['date']
+        pickup_schedule_id = None
+        if 'pickup_schedule_id' in request.data:
+            pickup_schedule_id = request.data['pickup_schedule_id']
 
         equipments = []
-
 
         for reserved_equipment in reserved_equipments:
             try:
@@ -58,16 +61,53 @@ class Reserve_equipment(PermissionPolicyMixin, APIView):
 
             equipments.append(tuple((equipment, quantity)))
 
+        pickup_schedule_exists = models.PickupSchedule.objects.filter(id=pickup_schedule_id).exists()
+
+        if not pickup_schedule_exists and pickup_schedule_id:
+            return Response({'error': 'Pickup schedule not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        if pickup_schedule_id and date != None:
+            return Response({'error': 'Pickup schedule and date cannot be both specified'}, status=status.HTTP_400_BAD_REQUEST)
 
         with atomic():
             reservation = models.EquipmentReservation.objects.create(
                 user=user,
-                date=date,
                 status=models.EquipmentReservation.EquipmentStatus.PENDING,
             )
+            if pickup_schedule_exists:
+                pickup_schedule = models.PickupSchedule.objects.get(id=pickup_schedule_id)
+                reservation.pickup_schedule = pickup_schedule
+                reservation.save()
+            else:
+                date = parse_datetime(date)
+                duration = (datetime.timedelta(minutes=30) + datetime.datetime.min).time()
+
+                admins_not_free = models.PickupSchedule.objects.exclude(
+                    Q(company_id=company_id,),
+                    Q(start_time__gt=date.time()-F('duration_minutes')),
+                    Q(start_time__gt=duration-F('duration_minutes')),
+                    Q(start_time__range=(date.time(), duration))
+                ).filter(date__exact=date.date())
+                non_free_ids = [admin.company_admin_id for admin in admins_not_free]
+                print(non_free_ids)
+                non_free_ids = list(set(non_free_ids))
+                admins_free = User.objects.filter(company_id=company_id).exclude(id__in=non_free_ids)
+                if admins_free.exists():
+                    pickup_schedule = models.PickupSchedule.objects.create(
+                        company_id=company_id,
+                        date=date.date(),
+                        start_time=date.time(),
+                        duration_minutes=duration,
+                        company_admin=admins_free.first(),
+                    )
+                    pickup_schedule.save()
+                else:
+                    return Response({'error': 'No company admin is available at this time'}, status=status.HTTP_400_BAD_REQUEST)
+
+                reservation.pickup_schedule = pickup_schedule
+                reservation.save()
 
 
-            print(equipments)
             for equipment, quantity in equipments:
                 equipment.quantity -= quantity
                 equipment.save()
@@ -83,8 +123,6 @@ class Reserve_equipment(PermissionPolicyMixin, APIView):
 
         return Response({'msg': 'Equipment reserved', 'reservation': reservation.id}, status=status.HTTP_200_OK)
 
-
-
 class Company(PermissionPolicyMixin, APIView):
     permission_classes_per_method = {
         "get": [IsAuthenticated],
@@ -92,44 +130,47 @@ class Company(PermissionPolicyMixin, APIView):
     }
 
     def get(self, request, id=None):
-        print(request.user.role)
         if (id==None):
-            if(request.user.role.__eq__('company_admin')):
+            if(request.user.role.__eq__('company_admin') and False):
                 try:
-                    company = models.Company.objects.get(id=request.user.company.id)
+                    company = models.Company.objects.get(admin=request.user.id)
                     serializer = serializers.CompanySerializer(company)
                     return Response({'msg': 'get company', 'company': serializer.data}, status=status.HTTP_200_OK)
                 except models.Company.DoesNotExist:
                     return Response({'error': 'Company not found'}, status=status.HTTP_404_NOT_FOUND)
+            else:
+                queryparams = request.query_params
+                filters = {}
+                if 'name' in queryparams and queryparams['name'] != '':
+                    filters['name__icontains'] = queryparams['name']
+                if 'rating' in queryparams and queryparams['rating'] != '':
+                    filters['rate__gte'] = queryparams['rating']
+
+                companies = models.Company.objects.filter(**filters)
+                serializer = serializers.CompanySerializer(companies, many=True)
+                return Response({'msg': 'get all companies', 'company': serializer.data}, status=status.HTTP_200_OK)
         elif id:
-                try:
-                    company = models.Company.objects.get(id=id)
-                    serializer = serializers.CompanySerializer(company)
-                    return Response({'msg': 'get company', 'company': serializer.data}, status=status.HTTP_200_OK)
-                except models.Company.DoesNotExist:
-                    return Response({'error': 'Company not found'}, status=status.HTTP_404_NOT_FOUND)
-        else:
-            filters = {}
-            if 'name' in request.GET and request.GET['name'] != '':
-                filters['name__icontains'] = request.GET['name']
-            if 'rating' in request.GET and request.GET['rating'] != '':
-                filters['rate__gte'] = request.GET['rating']
+            try:
+                company = get_object_or_404(models.Company.objects.prefetch_related(
+                    Prefetch('pickup_schedules', queryset=models.PickupSchedule.objects.filter(equipment_reservation__isnull=True),
+                             to_attr='filtered_pickup_schedules'),
+                ), id=id)
+                serializer = serializers.FullInfoCompanySerializer(company)
+                return Response({'msg': 'get company', 'company': serializer.data}, status=status.HTTP_200_OK)
+            except models.Company.DoesNotExist:
+                return Response({'error': 'Company not found'}, status=status.HTTP_404_NOT_FOUND)
 
-            companies = models.Company.objects.filter(**filters)
-
-            serializer = serializers.CompanySerializer(companies, many=True)
-            return Response({'msg': 'get all companies', 'company': serializer.data}, status=status.HTTP_200_OK)
     def put(self, request, id):
         try:
             company = models.Company.objects.get(id=id)
-        except Company.DoesNotExist:
+        except models.Company.DoesNotExist:
             return Response({'error': 'Company not found'}, status=status.HTTP_404_NOT_FOUND)
         serializer = serializers.CompanySerializer(company, data=request.data)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
+    
     def _validate_required_fields(self, data):
         required_fields = ['name', 'address', 'description', 'website', 'email']
         for field in required_fields:
@@ -148,6 +189,7 @@ class Company(PermissionPolicyMixin, APIView):
             serializer.save()
             return Response({'msg': 'create company', 'company': serializer.data}, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
 class Equipment(APIView):
     def get(self, request):
@@ -183,7 +225,7 @@ class CompanyBaseInfo(APIView):
 class PickupSchedule(PermissionPolicyMixin, APIView):
     permission_classes_per_method = {
         "get": [IsAuthenticated],
-        "post": [IsAuthenticated, IsCompanyAdmin]
+        "post": [IsAuthenticated]#, IsCompanyAdmin]
     }
     def get(self, request, id=None):
         try:
@@ -202,16 +244,29 @@ class PickupSchedule(PermissionPolicyMixin, APIView):
 
     def post(self, request):
         try:
+            pickup_data = {}
             data = request.data
-            data['company'] = request.user.company.id
-            serializer = serializers.PickupScheduleSerializer(data=data)
-            if serializer.is_valid():
-                serializer.save()
-                print("serializer data:", serializer.data)
-                return Response(serializer.data, status=status.HTTP_201_CREATED)
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+            admin = User.objects.get(first_name__iexact=data['first_name'], last_name__iexact=data['last_name'])
+
+            pickup_data['company_admin'] = admin
+            pickup_data['date'] = data['date']
+            pickup_data['start_time'] = data['start_time']
+            pickup_data['duration_minutes'] = (datetime.timedelta(minutes=data['duration_minutes']) + datetime.datetime.min).time()
+            pickup_data['company'] = admin.company
+
+            pickup_schedule = models.PickupSchedule.objects.create(**pickup_data)
+            return Response({'msg': 'create schedule', 'schedule': pickup_schedule.id}, status=status.HTTP_201_CREATED)
+
+            # serializer = serializers.PickupScheduleSerializer(**pickup_data)
+            # if serializer.is_valid():
+            #     serializer.save()
+            #     print("serializer data:", serializer.data)
+            #     return Response(serializer.data, status=status.HTTP_201_CREATED)
+            # return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
             return Response(str(e), status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
 class Equipment_CompanyAdmin(APIView):
     permission_classes_per_method = {
