@@ -49,7 +49,7 @@ def signup(request):
     return Response(serializer.errors, status=status.HTTP_200_OK)
 
 @api_view(['POST'])
-#@permission_classes([IsSystemAdmin])
+@permission_classes([IsSystemAdmin])
 def registerCompanyAdmin(request):
     serializer = CompanyAdminSerializer(data=request.data)
     if serializer.is_valid():       
@@ -72,7 +72,7 @@ def registerCompanyAdmin(request):
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['POST'])
-#@permission_classes([IsSystemAdmin])
+@permission_classes([IsSystemAdmin])
 def registerSystemAdmin(request):
     serializer = UserSerializer(data=request.data)
     if serializer.is_valid():       
