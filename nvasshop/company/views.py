@@ -126,7 +126,8 @@ class Reserve_equipment(PermissionPolicyMixin, APIView):
 class Company(PermissionPolicyMixin, APIView):
     permission_classes_per_method = {
         "get": [IsAuthenticated],
-        "put": [IsAuthenticated, IsCompanyAdmin]
+        "put": [IsAuthenticated, IsCompanyAdmin],
+        "post": [IsSystemAdmin],
     }
 
     def get(self, request, id=None):
