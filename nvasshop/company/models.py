@@ -34,7 +34,7 @@ class PickupSchedule(models.Model):
     company_admin = models.ForeignKey('user.User', related_name='admin_pickup', on_delete=models.CASCADE)
     date = models.DateField()
     start_time = models.TimeField()
-    duration_minutes = models.TimeField()
+    end_time = models.TimeField()
 
 
 class EquipmentReservation(models.Model):

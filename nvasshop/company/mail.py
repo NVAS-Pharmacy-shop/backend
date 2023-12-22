@@ -31,7 +31,8 @@ def send_reservation_email(reservation_id, recipient_email):
 
     qr_code_data = (f'\tReservation ID: {reservation_info.id}\n'
                     f'\tUser: {reservation_info.user.email}\n'
-                    f'\tDate: {reservation_info.date}\n')
+                    f'\tDate: {reservation_info.pickup_schedule.date}\n'
+                    f'\tStart Time: {reservation_info.pickup_schedule.start_time}\n')
 
     for reserved_equipment in reservation_info.reserved_equipment.all():
         qr_code_data += f'\t{reserved_equipment.equipment.name} x {reserved_equipment.quantity}\n'

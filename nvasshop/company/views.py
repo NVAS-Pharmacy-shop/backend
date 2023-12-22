@@ -78,13 +78,11 @@ class Reserve_equipment(PermissionPolicyMixin, APIView):
                 reservation.save()
             else:
                 date = parse_datetime(date)
-                duration = (datetime.timedelta(minutes=30) + datetime.datetime.min).time()
 
-                admins_not_free = models.PickupSchedule.objects.exclude(
+                admins_not_free = models.PickupSchedule.objects.filter(
                     Q(company_id=company_id,),
-                    Q(start_time__gt=date.time()-F('duration_minutes')),
-                    Q(start_time__gt=duration-F('duration_minutes')),
-                    Q(start_time__range=(date.time(), duration))
+                    (Q(end_time__range=(date.time(), (date + datetime.timedelta(minutes=30)))) |
+                    Q(start_time__range=(date.time(), (date + datetime.timedelta(minutes=30)).time())))
                 ).filter(date__exact=date.date())
                 non_free_ids = [admin.company_admin_id for admin in admins_not_free]
                 print(non_free_ids)
@@ -95,7 +93,7 @@ class Reserve_equipment(PermissionPolicyMixin, APIView):
                         company_id=company_id,
                         date=date.date(),
                         start_time=date.time(),
-                        duration_minutes=duration,
+                        end_time=(date + datetime.timedelta(minutes=30)).time(),
                         company_admin=admins_free.first(),
                     )
                     pickup_schedule.save()
@@ -254,7 +252,10 @@ class PickupSchedule(PermissionPolicyMixin, APIView):
             pickup_data['company_admin'] = admin
             pickup_data['date'] = data['date']
             pickup_data['start_time'] = data['start_time']
-            pickup_data['duration_minutes'] = (datetime.timedelta(minutes=data['duration_minutes']) + datetime.datetime.min).time()
+            date = datetime.datetime.strptime(data['date'], '%Y-%m-%d')
+            time = datetime.datetime.strptime(data['start_time'], '%H:%M').time()
+            combined = datetime.datetime.combine(date, time)
+            pickup_data['end_time'] = (datetime.timedelta(minutes=data['duration_minutes']) + combined).time()
             pickup_data['company'] = admin.company
 
             pickup_schedule = models.PickupSchedule.objects.create(**pickup_data)

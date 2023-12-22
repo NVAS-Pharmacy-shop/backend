@@ -15,7 +15,7 @@ class PickupScheduleSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.PickupSchedule
         fields = ['id', 'company',
-                  'date', 'start_time', 'duration_minutes', 'company_admin']
+                  'date', 'start_time', 'end_time', 'company_admin']
 
 
 class FullInfoCompanySerializer(serializers.ModelSerializer):
