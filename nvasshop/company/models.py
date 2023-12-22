@@ -7,8 +7,8 @@ class Company(models.Model):
     email = models.CharField(max_length=50)
     website = models.CharField(max_length=50)
     rate = models.DecimalField(max_digits=3, decimal_places=1, default=0.0)
-    start_time = models.TimeField()
-    end_time = models.TimeField()
+    start_time = models.TimeField(default='00:00:00')
+    end_time = models.TimeField(default='00:00:00')
 
 
 class EquipmentType(models.IntegerChoices):
@@ -32,9 +32,9 @@ class Equipment(models.Model):
 class PickupSchedule(models.Model):
     company = models.ForeignKey(Company, related_name='pickup_schedules', on_delete=models.CASCADE)
     company_admin = models.ForeignKey('user.User', related_name='admin_pickup', on_delete=models.CASCADE)
-    date = models.DateField()
-    start_time = models.TimeField()
-    end_time = models.TimeField()
+    date = models.DateField(default='2023-01-01')
+    start_time = models.TimeField(default='00:00:00')
+    end_time = models.TimeField(default='00:00:00')
 
 
 class EquipmentReservation(models.Model):
