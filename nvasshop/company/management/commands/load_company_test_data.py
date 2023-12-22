@@ -21,6 +21,12 @@ def add_test_data():
     company7 = Company.objects.create(name='Health Financial Dynamics Inc', address='321 Health Finance Lane', description='Innovative financial services for the health sector', email='info@healthfinancialdynamics.com', website='www.healthfinancialdynamics.com', rate=4.2, start_time=time(8, 0, 0), end_time=time(16, 0, 0))
     company8 = Company.objects.create(name='Health Tech Systems', address='555 Health Smart Avenue', description='Smart solutions for a connected health world', email='info@healthtechsystems.com', website='www.healthtechsystems.com', rate=4.8, start_time=time(8, 0, 0), end_time=time(16, 0, 0))
 
+    user1 = User.objects.filter(role=User.Role.COMPANY_ADMIN).first()
+    user2 = User.objects.filter(role=User.Role.COMPANY_ADMIN).last()
+    user1.company = company1
+    user2.company = company2
+    user1.save()
+    user2.save()
 
     Equipment.objects.create(company=company1, name='MRI Scanner', description='High-resolution magnetic resonance imaging scanner', quantity=10, type=EquipmentType.DIAGNOSTIC_EQUIPMENT)
     Equipment.objects.create(company=company1, name='Patient Monitors', description='Advanced patient monitoring system', quantity=5, type=EquipmentType.MONITORING_EQUIPMENT)
