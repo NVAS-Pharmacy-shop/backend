@@ -28,11 +28,23 @@ class FullInfoCompanySerializer(serializers.ModelSerializer):
 
 
 class CompanySerializer(serializers.ModelSerializer):
+    equipment = EquipmentSerializer(many=True, read_only=True)
     class Meta:
         model = models.Company
-        fields = ['id', 'name', 'address', 'email', 'website', 'rate', 'description']
+        fields = ['id', 'name', 'address', 'email', 'website', 'rate', 'description', 'equipment']
 
 class CompanyBaseInfoSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.Company
         fields = ['id', 'name', 'address', 'email', 'website', 'rate', 'description' ]
+
+class ReservationSerializer(serializers.ModelSerializer):
+    user_first_name = serializers.CharField(source='user.first_name')
+    user_last_name = serializers.CharField(source='user.last_name')
+    date = serializers.DateField(source='pickup_schedule.date')
+    start_time = serializers.TimeField(source='pickup_schedule.start_time')
+    end_time = serializers.TimeField(source='pickup_schedule.end_time')
+
+    class Meta:
+        model = models.EquipmentReservation
+        fields = ['user_first_name', 'user_last_name', 'date', 'start_time', 'end_time']

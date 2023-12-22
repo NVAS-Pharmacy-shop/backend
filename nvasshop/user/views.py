@@ -66,7 +66,7 @@ class CompanyAdmin(PermissionPolicyMixin, APIView):
             serializer = serializers.CompanyAdminSerializer(users, many=True)
             return Response({'msg': 'get all user', 'user': serializer.data}, status=status.HTTP_200_OK)
         else:
-            users = models.User.objects.filter(company_id=request.user.company.id).exclude(id=request.user.id)
+            users = models.User.objects.filter(company_id=request.user.company.id)
             serializer = serializers.CompanyAdminSerializer(users, many=True)
             return Response({'msg': 'get all user', 'user': serializer.data}, status=status.HTTP_200_OK)
     def put(self, request):
@@ -83,7 +83,7 @@ class CompanyAdmin(PermissionPolicyMixin, APIView):
 
 class CompanyAdmin_PasswordChange(PermissionPolicyMixin, APIView):
     permission_classes_per_method = {
-        "put": [IsAuthenticated, IsCompanyAdmin]
+        "put": [IsAuthenticated]
     }
     def put(self, request):
         try:
