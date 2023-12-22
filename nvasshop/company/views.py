@@ -157,6 +157,18 @@ class CompanyReservations(PermissionPolicyMixin, APIView):
         return Response({'msg': 'Reservations retrieved', 'reservations': serializer.data}, status=status.HTTP_200_OK) 
 
 
+class CompanyAdmin(PermissionPolicyMixin, APIView):
+    permission_classes_per_method = {
+        "get": [IsAuthenticated, IsCompanyAdmin]
+    }
+    def get(self, request):
+        try:
+            company = models.Company.objects.get(admin=request.user.id)
+            serializer = serializers.CompanySerializer(company)
+            return Response({'msg': 'get company', 'company': serializer.data}, status=status.HTTP_200_OK)
+        except models.Company.DoesNotExist:
+            return Response({'error': 'Company not found'}, status=status.HTTP_404_NOT_FOUND)
+
 class Company(PermissionPolicyMixin, APIView):
     permission_classes_per_method = {
         "get": [IsAuthenticated],
@@ -166,24 +178,16 @@ class Company(PermissionPolicyMixin, APIView):
 
     def get(self, request, id=None):
         if (id==None):
-            if(request.user.role.__eq__('company_admin')):
-                try:
-                    company = models.Company.objects.get(admin=request.user.id)
-                    serializer = serializers.CompanySerializer(company)
-                    return Response({'msg': 'get company', 'company': serializer.data}, status=status.HTTP_200_OK)
-                except models.Company.DoesNotExist:
-                    return Response({'error': 'Company not found'}, status=status.HTTP_404_NOT_FOUND)
-            else:
-                queryparams = request.query_params
-                filters = {}
-                if 'name' in queryparams and queryparams['name'] != '':
-                    filters['name__icontains'] = queryparams['name']
-                if 'rating' in queryparams and queryparams['rating'] != '':
-                    filters['rate__gte'] = queryparams['rating']
+            queryparams = request.query_params
+            filters = {}
+            if 'name' in queryparams and queryparams['name'] != '':
+                filters['name__icontains'] = queryparams['name']
+            if 'rating' in queryparams and queryparams['rating'] != '':
+                filters['rate__gte'] = queryparams['rating']
 
-                companies = models.Company.objects.filter(**filters)
-                serializer = serializers.CompanySerializer(companies, many=True)
-                return Response({'msg': 'get all companies', 'company': serializer.data}, status=status.HTTP_200_OK)
+            companies = models.Company.objects.filter(**filters)
+            serializer = serializers.CompanySerializer(companies, many=True)
+            return Response({'msg': 'get all companies', 'company': serializer.data}, status=status.HTTP_200_OK)
         elif id:
             try:
                 company = get_object_or_404(models.Company.objects.prefetch_related(
