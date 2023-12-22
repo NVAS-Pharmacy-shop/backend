@@ -43,8 +43,8 @@ class ReservationSerializer(serializers.ModelSerializer):
     user_last_name = serializers.CharField(source='user.last_name')
     date = serializers.DateField(source='pickup_schedule.date')
     start_time = serializers.TimeField(source='pickup_schedule.start_time')
-    duration_minutes = serializers.TimeField(source='pickup_schedule.duration_minutes')
+    end_time = serializers.TimeField(source='pickup_schedule.end_time')
 
     class Meta:
         model = models.EquipmentReservation
-        fields = ['user_first_name', 'user_last_name', 'date', 'start_time', 'duration_minutes']
+        fields = ['user_first_name', 'user_last_name', 'date', 'start_time', 'end_time']
