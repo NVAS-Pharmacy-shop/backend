@@ -76,7 +76,7 @@ class CompanyAdmin(PermissionPolicyMixin, APIView):
 
 class CompanyAdmin_PasswordChange(PermissionPolicyMixin, APIView):
     permission_classes_per_method = {
-        "put": [IsAuthenticated, IsCompanyAdmin]
+        "put": [IsAuthenticated]
     }
     def put(self, request):
         try:

@@ -10,10 +10,12 @@ urlpatterns = [
     path("equipment/", Equipment.as_view(), name="equipment-list"),
     path("base_info/<int:id>/", views.CompanyBaseInfo.as_view(), name="company-base-info-detail"),
     path("base_info/", views.CompanyBaseInfo.as_view(), name="company-base-info-list"),
+    path("reserve/", Reserve_equipment.as_view()),
     path("create-schedule/", views.PickupSchedule.as_view(), name="create-schedule"),
     path("schedules/<int:id>/", views.PickupSchedule.as_view(), name="get-schedule"),
     path("schedules/", views.PickupSchedule.as_view(), name="get-schedule"),
     path("equipment/admin/", views.Equipment_CompanyAdmin.as_view(), name="equipment-admin-list"),
     path("reserve/", Reserve_equipment.as_view()),
     path("equipment/admin/<int:id>/", views.Equipment_CompanyAdmin.as_view(), name="equipment-admin-detail"),
+    path("reservations/<str:date_str>/<str:period>/", views.CompanyReservations.as_view(), name="company-reservations"),
 ]

@@ -53,3 +53,4 @@ class ReservedEquipment(models.Model):
     equipment = models.ForeignKey(Equipment, related_name='reserved_equipment', on_delete=models.CASCADE, default=0)
     reservation = models.ForeignKey(EquipmentReservation, related_name='reserved_equipment', on_delete=models.CASCADE, default=0)
     quantity = models.IntegerField(default=0)
+
