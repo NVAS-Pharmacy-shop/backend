@@ -17,4 +17,5 @@ urlpatterns = [
     path("equipment/admin/", views.Equipment_CompanyAdmin.as_view(), name="equipment-admin-list"),
     path("reserve/", Reserve_equipment.as_view()),
     path("equipment/admin/<int:id>/", views.Equipment_CompanyAdmin.as_view(), name="equipment-admin-detail"),
+    path("reservations/<str:date_str>/<str:period>/", views.CompanyReservations.as_view(), name="company-reservations"),
 ]

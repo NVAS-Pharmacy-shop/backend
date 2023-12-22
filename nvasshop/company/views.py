@@ -1,5 +1,5 @@
 import asyncio
-import datetime
+from datetime import datetime, timedelta
 import threading
 from io import BytesIO
 
@@ -122,6 +122,42 @@ class Reserve_equipment(PermissionPolicyMixin, APIView):
 
 
         return Response({'msg': 'Equipment reserved', 'reservation': reservation.id}, status=status.HTTP_200_OK)
+
+
+class CompanyReservations(PermissionPolicyMixin, APIView):
+    permission_classes_per_method = {
+        "get": [IsCompanyAdmin],
+    }
+
+    def get(self, request, date_str=None, period=None):
+        if not date_str or not period:
+            return Response({'msg': 'Missing date or period'}, status=status.HTTP_400_BAD_REQUEST)
+
+        date = datetime.strptime(date_str, '%Y-%m-%d').date()
+
+        if period == 'week':
+            start_date = date - timedelta(days=date.weekday())
+            end_date = start_date + timedelta(days=6)
+        elif period == 'month':
+            start_date = date.replace(day=1)
+            end_date = (start_date + timedelta(days=32)).replace(day=1) - timedelta(days=1)
+        elif period == 'year':
+            start_date = date.replace(month=1, day=1)
+            end_date = date.replace(month=12, day=31)
+        else:
+            return Response({'msg': 'Invalid period'}, status=status.HTTP_400_BAD_REQUEST)
+
+        user = User.objects.get(email=request.user.email)
+        reservations = models.EquipmentReservation.objects.filter(
+            Q(pickup_schedule__date__gte=start_date) & 
+            Q(pickup_schedule__date__lte=end_date) & 
+            Q(pickup_schedule__company=user.company)
+        )
+
+        serializer = serializers.ReservationSerializer(reservations, many=True)
+
+        return Response({'msg': 'Reservations retrieved', 'reservations': serializer.data}, status=status.HTTP_200_OK) 
+
 
 class Company(PermissionPolicyMixin, APIView):
     permission_classes_per_method = {
