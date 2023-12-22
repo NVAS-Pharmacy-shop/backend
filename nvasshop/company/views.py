@@ -166,7 +166,7 @@ class Company(PermissionPolicyMixin, APIView):
 
     def get(self, request, id=None):
         if (id==None):
-            if(request.user.role.__eq__('company_admin') and False):
+            if(request.user.role.__eq__('company_admin')):
                 try:
                     company = models.Company.objects.get(admin=request.user.id)
                     serializer = serializers.CompanySerializer(company)
@@ -366,10 +366,13 @@ class Equipment_CompanyAdmin(APIView):
     def delete(self, request, id=None):
         try:
             if id is not None and request.user.role == 'company_admin':
-                # add checking if the schedule is created by user!
-                equipment = models.Equipment.objects.get(id=id)
-                equipment.delete()
-                return Response({'msg': 'Equipment deleted successfully'}, status=status.HTTP_204_NO_CONTENT)
+                try:
+                    reserved_equipment = models.ReservedEquipment.objects.get(equipment_id=id)
+                    return Response({'error': 'Equipment is reserved and cannot be deleted'}, status=status.HTTP_400_BAD_REQUEST)
+                except models.ReservedEquipment.DoesNotExist:
+                    equipment = models.Equipment.objects.get(id=id)
+                    equipment.delete()
+                    return Response({'msg': 'Equipment deleted successfully'}, status=status.HTTP_204_NO_CONTENT)
             else:
                 return Response({'error': 'Equipment ID is required'}, status=status.HTTP_400_BAD_REQUEST)
         except models.PickupSchedule.DoesNotExist:

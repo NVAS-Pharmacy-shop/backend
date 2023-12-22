@@ -55,11 +55,11 @@ class CompanyAdmin(PermissionPolicyMixin, APIView):
     }
     def get(self, request, company_id=None):
         if company_id:
-            users = models.User.objects.filter(company_id=company_id).exclude(id=request.user.id)
+            users = models.User.objects.filter(company_id=company_id)
             serializer = serializers.CompanyAdminSerializer(users, many=True)
             return Response({'msg': 'get all user', 'user': serializer.data}, status=status.HTTP_200_OK)
         else:
-            users = models.User.objects.filter(company_id=request.user.company.id).exclude(id=request.user.id)
+            users = models.User.objects.filter(company_id=request.user.company.id)
             serializer = serializers.CompanyAdminSerializer(users, many=True)
             return Response({'msg': 'get all user', 'user': serializer.data}, status=status.HTTP_200_OK)
     def put(self, request):
