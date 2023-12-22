@@ -83,8 +83,8 @@ class Reserve_equipment(PermissionPolicyMixin, APIView):
 
                 admins_not_free = models.PickupSchedule.objects.filter(
                     Q(company_id=company_id,),
-                    (Q(end_time__range=(date.time(), (date + datetime.timedelta(minutes=30)))) |
-                    Q(start_time__range=(date.time(), (date + datetime.timedelta(minutes=30)).time())))
+                    (Q(end_time__range=(date.time(), (date + timedelta(minutes=30)))) |
+                    Q(start_time__range=(date.time(), (date + timedelta(minutes=30)).time())))
                 ).filter(date__exact=date.date())
                 non_free_ids = [admin.company_admin_id for admin in admins_not_free]
                 print(non_free_ids)
@@ -95,7 +95,7 @@ class Reserve_equipment(PermissionPolicyMixin, APIView):
                         company_id=company_id,
                         date=date.date(),
                         start_time=date.time(),
-                        end_time=(date + datetime.timedelta(minutes=30)).time(),
+                        end_time=(date + timedelta(minutes=30)).time(),
                         company_admin=admins_free.first(),
                     )
                     pickup_schedule.save()
