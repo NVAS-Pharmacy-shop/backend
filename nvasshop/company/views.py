@@ -289,7 +289,7 @@ class PickupSchedule(PermissionPolicyMixin, APIView):
             pickup_data['company_admin'] = admin
             pickup_data['date'] = data['date']
             pickup_data['start_time'] = data['start_time']
-            pickup_data['duration_minutes'] = (datetime.timedelta(minutes=data['duration_minutes']) + datetime.datetime.min).time()
+            pickup_data['duration_minutes'] = (timedelta(minutes=data['duration_minutes']) + datetime.min).time()
             pickup_data['company'] = admin.company
 
             pickup_schedule = models.PickupSchedule.objects.create(**pickup_data)
