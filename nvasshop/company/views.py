@@ -278,6 +278,17 @@ class PickupSchedule(PermissionPolicyMixin, APIView):
         except Exception as e:
             return Response({'error': f'An error occurred: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+    def check_overlap(self, admin_id, date, start_time, end_time):
+        pickup_schedules = models.PickupSchedule.objects.filter(company_admin_id=admin_id)
+        flag = False
+        for schedule in pickup_schedules:
+            print("schedule.date = ", schedule.date, "         ", "date: ", date.date())
+            if schedule.date==date.date():
+                if ((schedule.start_time <= start_time <= schedule.end_time) or (schedule.start_time <= end_time <= schedule.end_time)):
+                    flag = True
+                    break
+        return flag
+
     def post(self, request):
         try:
             pickup_data = {}
@@ -293,9 +304,12 @@ class PickupSchedule(PermissionPolicyMixin, APIView):
             combined = datetime.combine(date, time)
             pickup_data['end_time'] = (timedelta(minutes=data['duration_minutes']) + combined).time()
             pickup_data['company'] = admin.company
-
-            pickup_schedule = models.PickupSchedule.objects.create(**pickup_data)
-            return Response({'msg': 'create schedule', 'schedule': pickup_schedule.id}, status=status.HTTP_201_CREATED)
+            print(self.check_overlap(admin.id, date, time, pickup_data['end_time']))
+            if(self.check_overlap(admin.id, date, time, pickup_data['end_time'])):
+                return Response({'msg':'cannot create schedule due to overlapping'}, status=status.HTTP_400_BAD_REQUEST)
+            else:
+                pickup_schedule = models.PickupSchedule.objects.create(**pickup_data)
+                return Response({'msg': 'create schedule', 'schedule': pickup_schedule.id}, status=status.HTTP_201_CREATED)
 
             # serializer = serializers.PickupScheduleSerializer(**pickup_data)
             # if serializer.is_valid():
@@ -304,6 +318,7 @@ class PickupSchedule(PermissionPolicyMixin, APIView):
             #     return Response(serializer.data, status=status.HTTP_201_CREATED)
             # return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
+            print(str(e))
             return Response(str(e), status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
