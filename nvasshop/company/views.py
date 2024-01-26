@@ -2,7 +2,6 @@ import asyncio
 from datetime import datetime, timedelta
 import threading
 from io import BytesIO
-
 import qrcode
 from django.core.mail import send_mail, EmailMessage
 from django.db.models import Prefetch, Q, F
@@ -11,7 +10,6 @@ from django.shortcuts import get_object_or_404
 from django.utils.dateparse import parse_datetime
 from django.utils.html import strip_tags
 from rest_framework.response import Response
-# Create your views here.
 from rest_framework.views import APIView
 from rest_framework import status
 from . import models
@@ -23,8 +21,7 @@ from django.http import Http404
 from drf_yasg.utils import swagger_auto_schema
 from multiprocessing import Process
 from user.models import User
-
-from .mail import send_reservation_email
+from .mail import send_reservation_email, equipment_delivered
 
 
 class Reserve_equipment(PermissionPolicyMixin, APIView):
@@ -383,3 +380,90 @@ class Equipment_CompanyAdmin(APIView):
             raise Http404("Schedule not found")
         except Exception as e:
             return Response({'error': f'An error occurred: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+class CompanyCustomers(PermissionPolicyMixin, APIView):
+    permission_classes_per_method = {
+        "get": [IsAuthenticated, IsCompanyAdmin]
+    }
+    def get(self, request):
+        try:
+            company = models.Company.objects.get(admin=request.user.id)
+            reservations = models.EquipmentReservation.objects.all()
+            users = []
+            for reservation in reservations:
+                if(models.PickupSchedule.objects.get(id=reservation.pickup_schedule_id).company_id == company.id):
+                    user = User.objects.get(id=reservation.user_id)
+                    if user not in users:
+                        users.append(user)
+            serializer = serializers.CompanyAdminSerializer(users, many=True)
+            return Response({'msg': 'get company customers', 'customers': serializer.data}, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+
+
+class HandlingEquipmentReservation(PermissionPolicyMixin, APIView):
+    permission_classes_per_method = {
+        "get": [IsAuthenticated, IsCompanyAdmin],
+        "put": [IsAuthenticated, IsCompanyAdmin]
+    }
+
+
+    def get(self, request):
+        try:
+            company = models.Company.objects.get(admin=request.user.id)
+            reservations = models.EquipmentReservation.objects.filter(pickup_schedule__company_id=company.id)
+            response_data = []
+            for reservation in reservations:
+                equipment_data = []
+                user = User.objects.get(id=reservation.user_id)
+                reserved_equipment = models.ReservedEquipment.objects.filter(reservation_id=reservation.id)
+                for equipment in reserved_equipment:
+                    single_equipment = models.Equipment.objects.get(id=equipment.equipment_id)
+                    equipment_data.append({
+                        'equipment_id': single_equipment.id,
+                        'equipment_name': single_equipment.name,
+                        'quantity': equipment.quantity
+                    })
+                response_data.append({
+                    'reservation_id': reservation.id,
+                    'date': reservation.pickup_schedule.date,
+                    'equipment': equipment_data,
+                    'user_email': user.email,
+                    'user_first_name': user.first_name,
+                    'user_last_name': user.last_name,
+                    'status': reservation.status
+                })
+
+            return Response({'reservations': response_data}, status=status.HTTP_200_OK)
+        except models.Company.DoesNotExist:
+            return Response({'error': 'Company not found'}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    def reduceEquipmentQuantity(id, quantity):
+        try:
+            equipment = models.Equipment.objects.get(id=id)
+            equipment.quantity -= quantity
+            equipment.save()
+        except models.Equipment.DoesNotExits:
+            print(f"Equipment with ID {id} does not exist.")
+    def put(self, request, id=None):
+        try:
+            reservation = models.EquipmentReservation.objects.get(id=id)
+            user = User.objects.get(id=reservation.user_id)
+            reservation.status = 'delivered'
+            equipment = request.data.get('equipment')
+            for e in equipment:
+                equipment_id = e['equipment_id']
+                quantity = e['quantity']
+                equipment = models.Equipment.objects.get(id=equipment_id)
+                equipment.quantity -= quantity
+                equipment.save()
+            reservation.save()
+            #email_thread = threading.Thread(target=equipment_delivered, args=(reservation.id, user.email))
+            #email_thread.start()
+            return Response({'msg': 'equipment delivered', 'user': user.email}, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

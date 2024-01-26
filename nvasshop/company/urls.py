@@ -18,5 +18,8 @@ urlpatterns = [
     path("reserve/", Reserve_equipment.as_view()),
     path("equipment/admin/<int:id>/", views.Equipment_CompanyAdmin.as_view(), name="equipment-admin-detail"),
     path("reservations/<str:date_str>/<str:period>/", views.CompanyReservations.as_view(), name="company-reservations"),
-    path("admin/", views.CompanyAdmin.as_view(), name="admin-company")
+    path("admin/", views.CompanyAdmin.as_view(), name="admin-company"),
+    path("company_customers/", views.CompanyCustomers.as_view(), name="company-customers"),
+    path("delivered-equipment/<int:id>/", views.HandlingEquipmentReservation.as_view(), name="delivered-equipment"),
+    path("reservations/", views.HandlingEquipmentReservation.as_view(), name="reservations")
 ]
