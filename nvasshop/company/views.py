@@ -286,7 +286,7 @@ class PickupSchedule(PermissionPolicyMixin, APIView):
             pickup_data = {}
             data = request.data
 
-            admin = User.objects.get(first_name__iexact=data['first_name'], last_name__iexact=data['last_name'])
+            admin = User.objects.get(first_name__iexact=data['first_name'], last_name__iexact=data['last_name'], role='company_admin')
 
             pickup_data['company_admin'] = admin
             pickup_data['date'] = data['date']
