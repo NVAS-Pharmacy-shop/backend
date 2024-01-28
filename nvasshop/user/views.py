@@ -80,6 +80,14 @@ class CompanyAdmin(PermissionPolicyMixin, APIView):
             return Response({'error': 'Invalid data', 'details': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
         except models.User.DoesNotExist:
             return Http404("Given query not found....")
+    
+class CompanyAdminCompanyId(PermissionPolicyMixin, APIView):
+    permission_classes_per_method = {
+        "get": [IsAuthenticated, IsCompanyAdmin],
+    }
+
+    def get(self, request):
+        return Response({'company_id': request.user.company.id}, status=status.HTTP_200_OK)
 
 class CompanyAdmin_PasswordChange(PermissionPolicyMixin, APIView):
     permission_classes_per_method = {
