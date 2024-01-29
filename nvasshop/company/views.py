@@ -477,8 +477,8 @@ class HandlingEquipmentReservation(PermissionPolicyMixin, APIView):
                 equipment.quantity -= quantity
                 equipment.save()
             reservation.save()
-            #email_thread = threading.Thread(target=equipment_delivered, args=(reservation.id, user.email))
-            #email_thread.start()
+            email_thread = threading.Thread(target=equipment_delivered, args=(reservation.id, user.email))
+            email_thread.start()
             return Response({'msg': 'equipment delivered', 'user': user.email}, status=status.HTTP_200_OK)
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
