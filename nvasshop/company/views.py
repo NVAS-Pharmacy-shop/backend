@@ -377,7 +377,15 @@ class Equipment_CompanyAdmin(APIView):
         try:
             print(request.data)
             equipment = models.Equipment.objects.get(id=request.data['id'])
-            serializer = serializers.EquipmentSerializer(equipment, data=request.data)
+
+            data = request.data
+            reserved_quantity = get_reserved_quantity(data['id'])
+
+            if int(data['quantity']) < reserved_quantity:
+                return Response({'error': f"Quantity for equipment {data['id']} is less than the reserved quantity"}, status=status.HTTP_400_BAD_REQUEST)
+
+
+            serializer = serializers.EquipmentSerializer(equipment, data=data)
             if serializer.is_valid():
                 serializer.save()
                 return Response({'msg': 'Equipment updated successfully', 'equipment': serializer.data},
