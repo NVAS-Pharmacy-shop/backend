@@ -13,7 +13,6 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 from datetime import timedelta
 from pathlib import Path
 
-
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -200,7 +199,7 @@ CELERY_BROKER_URL = 'amqp://guest:guest@localhost:5672/'
 
 CELERY_BEAT_SCHEDULE = {
     'check-past-pickup-schedules': {
-        'task': '.tasks.check_past_pickup_schedules',
+        'task': 'tasks.check_past_pickup_schedules',
         'schedule': 5.0,
     },
 }
