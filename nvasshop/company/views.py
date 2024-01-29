@@ -5,7 +5,7 @@ from io import BytesIO
 
 import qrcode
 from django.core.mail import send_mail, EmailMessage
-from django.db.models import Prefetch, Q, F
+from django.db.models import Prefetch, Q, F, Sum
 from django.db.transaction import atomic
 from django.shortcuts import get_object_or_404
 from django.utils.dateparse import parse_datetime
@@ -26,6 +26,17 @@ from user.models import User
 
 from .mail import send_reservation_email
 
+def get_reserved_quantity(equipment_id):
+    reserved_equipment = models.ReservedEquipment.objects.filter(
+        equipment_id=equipment_id,
+        reservation__status=models.EquipmentReservation.EquipmentStatus.PENDING
+    )
+
+    # aggregate performs calculations inside the database. It returns a dictionary with the results.
+    # More operations can be added to the aggregate function and each value will be added to the dictionary.
+    total_quantity = reserved_equipment.aggregate(Sum('quantity'))['quantity__sum']
+
+    return total_quantity if total_quantity is not None else 0
 
 class Reserve_equipment(PermissionPolicyMixin, APIView):
     permission_classes_per_method = {
@@ -56,7 +67,8 @@ class Reserve_equipment(PermissionPolicyMixin, APIView):
             except models.Equipment.DoesNotExist:
                 return Response({'error': 'Equipment not found'}, status=status.HTTP_404_NOT_FOUND)
             quantity = reserved_equipment['quantity']
-            if equipment.quantity < quantity:
+            reserved_quantity = get_reserved_quantity(equipment_id)
+            if equipment.quantity < quantity + reserved_quantity:
                 return Response({'error': 'Not enough equipment'}, status=status.HTTP_400_BAD_REQUEST)
 
             equipments.append(tuple((equipment, quantity)))
@@ -107,8 +119,8 @@ class Reserve_equipment(PermissionPolicyMixin, APIView):
 
 
             for equipment, quantity in equipments:
-                equipment.quantity -= quantity
-                equipment.save()
+                #equipment.quantity -= quantity
+                #equipment.save()
                 models.ReservedEquipment.objects.create(
                     reservation=reservation,
                     equipment=equipment,
@@ -195,7 +207,14 @@ class Company(PermissionPolicyMixin, APIView):
                              to_attr='filtered_pickup_schedules'),
                 ), id=id)
                 serializer = serializers.FullInfoCompanySerializer(company)
-                return Response({'msg': 'get company', 'company': serializer.data}, status=status.HTTP_200_OK)
+                data = serializer.data
+                for equipment in data['equipment']:
+                    reserved_quantity = get_reserved_quantity(equipment['id'])
+
+                    # Subtract the reserved quantity from the equipment's quantity
+                    equipment['quantity'] -= reserved_quantity
+
+                return Response({'msg': 'get company', 'company': data}, status=status.HTTP_200_OK)
             except models.Company.DoesNotExist:
                 return Response({'error': 'Company not found'}, status=status.HTTP_404_NOT_FOUND)
 
