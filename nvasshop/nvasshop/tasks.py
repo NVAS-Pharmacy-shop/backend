@@ -2,9 +2,9 @@ from datetime import datetime
 from celery import shared_task
 from django.db import transaction
 
-from nvasshop.company.models import PickupSchedule
-from nvasshop.company.models import EquipmentReservation
-from nvasshop.user.models import User
+from company.models import EquipmentReservation, PickupSchedule
+from user.models import User
+
 
 @shared_task
 def check_past_pickup_schedules():
