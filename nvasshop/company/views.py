@@ -469,13 +469,12 @@ class HandlingEquipmentReservation(PermissionPolicyMixin, APIView):
             reservation = models.EquipmentReservation.objects.get(id=id)
             user = User.objects.get(id=reservation.user_id)
             reservation.status = 'delivered'
-            equipment = request.data.get('equipment')
-            for e in equipment:
-                equipment_id = e['equipment_id']
-                quantity = e['quantity']
-                equipment = models.Equipment.objects.get(id=equipment_id)
-                equipment.quantity -= quantity
-                equipment.save()
+            reserved_equipment = models.ReservedEquipment.objects.filter(reservation_id=reservation.id)
+
+            for e in reserved_equipment:
+                e.equipment.quantity -= e.quantity
+                e.equipment.save()
+
             reservation.save()
             email_thread = threading.Thread(target=equipment_delivered, args=(reservation.id, user.email))
             email_thread.start()
