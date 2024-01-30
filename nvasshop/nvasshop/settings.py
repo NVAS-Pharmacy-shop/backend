@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django_celery_beat',
     'user',
     'rest_framework',
     'drf_yasg',
@@ -201,7 +202,7 @@ CELERY_BROKER_URL = 'amqp://guest:guest@localhost:5672/'
 
 CELERY_BEAT_SCHEDULE = {
     'check-past-pickup-schedules': {
-        'task': 'nvasshop.tasks.check_past_pickup_schedules',  # Correct the task path
-        'schedule': crontab(minute='*/1'),  # Run every 30 minutes
+        'task': 'nvasshop.tasks.check_past_pickup_schedules', 
+        'schedule': crontab(minute='*/30'),  # Run every 30 minutes
     },
 }
