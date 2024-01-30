@@ -442,15 +442,11 @@ class CompanyCustomers(PermissionPolicyMixin, APIView):
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-
-
-
 class HandlingEquipmentReservation(PermissionPolicyMixin, APIView):
     permission_classes_per_method = {
         "get": [IsAuthenticated, IsCompanyAdmin],
         "put": [IsAuthenticated, IsCompanyAdmin]
     }
-
 
     def get(self, request):
         try:
@@ -484,17 +480,15 @@ class HandlingEquipmentReservation(PermissionPolicyMixin, APIView):
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-    def reduceEquipmentQuantity(id, quantity):
-        try:
-            equipment = models.Equipment.objects.get(id=id)
-            equipment.quantity -= quantity
-            equipment.save()
-        except models.Equipment.DoesNotExits:
-            print(f"Equipment with ID {id} does not exist.")
     def put(self, request, id=None):
         try:
             reservation = models.EquipmentReservation.objects.get(id=id)
-            user = User.objects.get(id=reservation.user_id)
+            if reservation.pickup_schedule.company_admin != request.user:
+                return Response({'error': 'You are not authorized to process this reservation.'}, status=status.HTTP_403_FORBIDDEN)
+            
+            if reservation.status != 'pending':
+                return Response({'error': 'Invalid reservation'}, status=status.HTTP_400_BAD_REQUEST)
+            
             reservation.status = 'delivered'
             reserved_equipment = models.ReservedEquipment.objects.filter(reservation_id=reservation.id)
 
@@ -503,6 +497,8 @@ class HandlingEquipmentReservation(PermissionPolicyMixin, APIView):
                 e.equipment.save()
 
             reservation.save()
+
+            user = User.objects.get(id=reservation.user_id)
             email_thread = threading.Thread(target=equipment_delivered, args=(reservation.id, user.email))
             email_thread.start()
             return Response({'msg': 'equipment delivered', 'user': user.email}, status=status.HTTP_200_OK)
