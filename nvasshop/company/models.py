@@ -30,7 +30,7 @@ class Equipment(models.Model):
     )
 
 class PickupSchedule(models.Model):
-    company = models.ForeignKey(Company, related_name='pickup_schedules', on_delete=models.CASCADE)
+    company = models.ForeignKey(Company, related_name='pickup_schedule_company', on_delete=models.CASCADE)
     company_admin = models.ForeignKey('user.User', related_name='admin_pickup', on_delete=models.CASCADE)
     date = models.DateField(default='2023-01-01')
     start_time = models.TimeField(default='00:00:00')
@@ -54,3 +54,8 @@ class ReservedEquipment(models.Model):
     reservation = models.ForeignKey(EquipmentReservation, related_name='reserved_equipment', on_delete=models.CASCADE, default=0)
     quantity = models.IntegerField(default=0)
 
+class Contract(models.Model):
+    hospital = models.IntegerField(default=0)
+    date = models.DateTimeField(default='2024-01-01 00:00:00')
+    company = models.ForeignKey(Company, related_name='contract_company', on_delete=models.CASCADE)
+    equipment = models.ManyToManyField(Equipment)

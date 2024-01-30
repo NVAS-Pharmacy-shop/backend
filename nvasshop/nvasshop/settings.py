@@ -201,6 +201,6 @@ CELERY_BROKER_URL = 'amqp://guest:guest@localhost:5672/'
 CELERY_BEAT_SCHEDULE = {
     'check-past-pickup-schedules': {
         'task': 'nvasshop.tasks.check_past_pickup_schedules',  # Correct the task path
-        'schedule': crontab(minute='*/1'),  # Run every 30 minutes
+        'schedule': 5.0,  # Run every 30 minutes
     },
 }

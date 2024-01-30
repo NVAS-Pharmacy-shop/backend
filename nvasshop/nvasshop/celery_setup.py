@@ -1,5 +1,6 @@
 import os
 
+import pika
 from celery import Celery
 from celery import shared_task
 
