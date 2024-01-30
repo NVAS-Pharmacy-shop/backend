@@ -5,7 +5,7 @@ from io import BytesIO
 import qrcode
 from django.core.mail import send_mail, EmailMessage
 from django.db import transaction
-from django.db.models import Prefetch, Q, F
+from django.db.models import Prefetch, Q, F, Sum
 from django.db.transaction import atomic
 from django.shortcuts import get_object_or_404
 from django.utils.dateparse import parse_datetime
@@ -24,6 +24,17 @@ from multiprocessing import Process
 from user.models import User
 from .mail import send_reservation_email, equipment_delivered
 
+def get_reserved_quantity(equipment_id):
+    reserved_equipment = models.ReservedEquipment.objects.filter(
+        equipment_id=equipment_id,
+        reservation__status=models.EquipmentReservation.EquipmentStatus.PENDING
+    )
+
+    # aggregate performs calculations inside the database. It returns a dictionary with the results.
+    # More operations can be added to the aggregate function and each value will be added to the dictionary.
+    total_quantity = reserved_equipment.aggregate(Sum('quantity'))['quantity__sum']
+
+    return total_quantity if total_quantity is not None else 0
 
 class Reserve_equipment(PermissionPolicyMixin, APIView):
     permission_classes_per_method = {
@@ -54,7 +65,8 @@ class Reserve_equipment(PermissionPolicyMixin, APIView):
             except models.Equipment.DoesNotExist:
                 return Response({'error': 'Equipment not found'}, status=status.HTTP_404_NOT_FOUND)
             quantity = reserved_equipment['quantity']
-            if equipment.quantity < quantity:
+            reserved_quantity = get_reserved_quantity(equipment_id)
+            if equipment.quantity < quantity + reserved_quantity:
                 return Response({'error': 'Not enough equipment'}, status=status.HTTP_400_BAD_REQUEST)
 
             equipments.append(tuple((equipment, quantity)))
@@ -105,8 +117,8 @@ class Reserve_equipment(PermissionPolicyMixin, APIView):
 
 
             for equipment, quantity in equipments:
-                equipment.quantity -= quantity
-                equipment.save()
+                #equipment.quantity -= quantity
+                #equipment.save()
                 models.ReservedEquipment.objects.create(
                     reservation=reservation,
                     equipment=equipment,
@@ -193,7 +205,14 @@ class Company(PermissionPolicyMixin, APIView):
                              to_attr='filtered_pickup_schedules'),
                 ), id=id)
                 serializer = serializers.FullInfoCompanySerializer(company)
-                return Response({'msg': 'get company', 'company': serializer.data}, status=status.HTTP_200_OK)
+                data = serializer.data
+                for equipment in data['equipment']:
+                    reserved_quantity = get_reserved_quantity(equipment['id'])
+
+                    # Subtract the reserved quantity from the equipment's quantity
+                    equipment['quantity'] -= reserved_quantity
+
+                return Response({'msg': 'get company', 'company': data}, status=status.HTTP_200_OK)
             except models.Company.DoesNotExist:
                 return Response({'error': 'Company not found'}, status=status.HTTP_404_NOT_FOUND)
 
@@ -301,7 +320,7 @@ class PickupSchedule(PermissionPolicyMixin, APIView):
             pickup_data = {}
             data = request.data
 
-            admin = User.objects.get(first_name__iexact=data['first_name'], last_name__iexact=data['last_name'])
+            admin = User.objects.get(first_name__iexact=data['first_name'], last_name__iexact=data['last_name'], role='company_admin')
 
             pickup_data['company_admin'] = admin
             pickup_data['date'] = data['date']
@@ -358,7 +377,15 @@ class Equipment_CompanyAdmin(APIView):
         try:
             print(request.data)
             equipment = models.Equipment.objects.get(id=request.data['id'])
-            serializer = serializers.EquipmentSerializer(equipment, data=request.data)
+
+            data = request.data
+            reserved_quantity = get_reserved_quantity(data['id'])
+
+            if int(data['quantity']) < reserved_quantity:
+                return Response({'error': f"Quantity for equipment {data['id']} is less than the reserved quantity"}, status=status.HTTP_400_BAD_REQUEST)
+
+
+            serializer = serializers.EquipmentSerializer(equipment, data=data)
             if serializer.is_valid():
                 serializer.save()
                 return Response({'msg': 'Equipment updated successfully', 'equipment': serializer.data},
@@ -415,15 +442,11 @@ class CompanyCustomers(PermissionPolicyMixin, APIView):
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-
-
-
 class HandlingEquipmentReservation(PermissionPolicyMixin, APIView):
     permission_classes_per_method = {
         "get": [IsAuthenticated, IsCompanyAdmin],
         "put": [IsAuthenticated, IsCompanyAdmin]
     }
-
 
     def get(self, request):
         try:
@@ -457,17 +480,15 @@ class HandlingEquipmentReservation(PermissionPolicyMixin, APIView):
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-    def reduceEquipmentQuantity(id, quantity):
-        try:
-            equipment = models.Equipment.objects.get(id=id)
-            equipment.quantity -= quantity
-            equipment.save()
-        except models.Equipment.DoesNotExits:
-            print(f"Equipment with ID {id} does not exist.")
     def put(self, request, id=None):
         try:
             reservation = models.EquipmentReservation.objects.get(id=id)
-            user = User.objects.get(id=reservation.user_id)
+            if reservation.pickup_schedule.company_admin != request.user:
+                return Response({'error': 'You are not authorized to process this reservation.'}, status=status.HTTP_403_FORBIDDEN)
+            
+            if reservation.status != 'pending':
+                return Response({'error': 'Invalid reservation'}, status=status.HTTP_400_BAD_REQUEST)
+            
             reservation.status = 'delivered'
             reserved_equipment = models.ReservedEquipment.objects.filter(reservation_id=reservation.id)
 
@@ -476,6 +497,8 @@ class HandlingEquipmentReservation(PermissionPolicyMixin, APIView):
                 e.equipment.save()
 
             reservation.save()
+
+            user = User.objects.get(id=reservation.user_id)
             email_thread = threading.Thread(target=equipment_delivered, args=(reservation.id, user.email))
             email_thread.start()
             return Response({'msg': 'equipment delivered', 'user': user.email}, status=status.HTTP_200_OK)
