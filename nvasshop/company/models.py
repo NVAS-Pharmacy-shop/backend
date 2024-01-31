@@ -59,5 +59,6 @@ class Contract(models.Model):
     date = models.DateTimeField(default='2024-01-01 00:00:00')
     company = models.ForeignKey(Company, related_name='contract_company', on_delete=models.CASCADE)
     equipment = models.JSONField(default=dict)
+    status = models.CharField(max_length=15, default='active')
     
 

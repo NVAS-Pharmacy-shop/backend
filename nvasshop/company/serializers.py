@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from user.serializers import UserSerializer, CompanyAdminSerializer
+# from user.serializers import CompanyAdminSerializer
 from . import models
 from .models import Contract
 
@@ -12,7 +12,7 @@ class EquipmentSerializer(serializers.ModelSerializer):
 
 
 class PickupScheduleSerializer(serializers.ModelSerializer):
-    company_admin = CompanyAdminSerializer(read_only=True)
+    company_admin = serializers.SerializerMethodField()
     class Meta:
         model = models.PickupSchedule
         fields = ['id', 'company',
