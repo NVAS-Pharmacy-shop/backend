@@ -48,3 +48,20 @@ class ReservationSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.EquipmentReservation
         fields = ['user_first_name', 'user_last_name', 'date', 'start_time', 'end_time']
+
+class PickupScheduleCalendarSerializer(serializers.ModelSerializer):
+    user_first_name = serializers.SerializerMethodField()
+    user_last_name = serializers.SerializerMethodField()
+    date = serializers.DateField()
+    start_time = serializers.TimeField()
+    end_time = serializers.TimeField()
+
+    class Meta:
+        model = models.PickupSchedule
+        fields = ['user_first_name', 'user_last_name', 'date', 'start_time', 'end_time']
+
+    def get_user_first_name(self, obj):
+        return 'Open'
+
+    def get_user_last_name(self, obj):
+        return 'appointment'

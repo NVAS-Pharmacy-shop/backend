@@ -161,9 +161,20 @@ class CompanyReservations(PermissionPolicyMixin, APIView):
             Q(pickup_schedule__company=user.company)
         )
 
-        serializer = serializers.ReservationSerializer(reservations, many=True)
+        reservation_serializer = serializers.ReservationSerializer(reservations, many=True)
 
-        return Response({'msg': 'Reservations retrieved', 'reservations': serializer.data}, status=status.HTTP_200_OK) 
+        pickup_schedules = models.PickupSchedule.objects.filter(
+            Q(date__gte=start_date) & 
+            Q(date__lte=end_date) & 
+            Q(company=user.company) &
+            ~Q(equipment_reservation__in=reservations)
+        )
+
+        pickup_schedule_serializer = serializers.PickupScheduleCalendarSerializer(pickup_schedules, many=True)
+
+        combined_data = reservation_serializer.data + pickup_schedule_serializer.data
+
+        return Response({'msg': 'Appointments retrieved', 'reservations': combined_data}, status=status.HTTP_200_OK) 
 
 
 class CompanyAdmin(PermissionPolicyMixin, APIView):
