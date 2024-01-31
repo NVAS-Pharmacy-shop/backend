@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 import pika, sys, os, json
-import googlemaps, time
+import requests, time, polyline
 
 def main():
     while True:
@@ -20,37 +20,47 @@ def callback(ch, method, properties, body):
         #print("Update frequency: ", updateFrequency)
         send_to_map(start, end, channel, updateFrequency)
 
+
 def send_to_map(start, end, channel, updateFrequency):
     api_key = 'AIzaSyALYenrDpiEz0dpZw4QefuAVK0elrLFWMA'
-    coordinates = get_route_coordinates(api_key, start, end)
+
+    # Google Maps Directions API endpoint
+    api_endpoint = 'https://maps.googleapis.com/maps/api/directions/json?'
+    request_url = f'{api_endpoint}origin={start}&destination={end}&key={api_key}&overview_polyline=true'
+    coordinates = get_route_coordinates(request_url)
+ 
     coordinates.append({'latitude': 0, 'longitude': 0})
+
+    channel.basic_consume(queue='queue1', on_message_callback=callback, auto_ack=True)
+
+    print(' [*] Waiting for messages. To exit press CTRL+C')
+    channel.start_consuming()
+
     print(coordinates)
     while(len(coordinates) > 0):
         channel.basic_publish(exchange='', routing_key='queue2', body=json.dumps(coordinates.pop(0)))
         time.sleep(updateFrequency)
 
 
-def get_route_coordinates(api_key, start_point, end_point):
-    gmaps = googlemaps.Client(key=api_key)
+def get_route_coordinates(request_url):
+    response = requests.get(request_url)
 
     # Dobijanje rute između početne i krajnje tačke
-    directions_result = gmaps.directions(start_point, end_point, mode="driving")
+    if response.status_code == 200:
+        # Parse the response JSON
+        data = response.json()
 
-    # Izvlačenje koordinata iz dobijenih koraka rute
-    coordinates = []
-    for step in directions_result[0]['legs'][0]['steps']:
-        coordinates.append({
-            'latitude': step['start_location']['lat'],
-            'longitude': step['start_location']['lng']
-        })
+        # Extract the 'overview_polyline'
+        overview_polyline = data.get('routes', [{}])[0].get('overview_polyline', {}).get('points', '')
 
-    # Dodajte krajnju tačku
-    coordinates.append({
-        'latitude': directions_result[0]['legs'][0]['end_location']['lat'],
-        'longitude': directions_result[0]['legs'][0]['end_location']['lng']
-    })
+        decoded_coordinates = polyline.decode(overview_polyline)
 
-    return coordinates
+        # Return the 'overview_polyline'
+        return decoded_coordinates
+    else:
+        print(f'Error {response.status_code}: {response.text}')
+
+   
 
 
 
