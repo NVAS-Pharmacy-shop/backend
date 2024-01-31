@@ -2,6 +2,7 @@ from rest_framework import serializers
 
 from user.serializers import UserSerializer, CompanyAdminSerializer
 from . import models
+from .models import Contract
 
 
 class EquipmentSerializer(serializers.ModelSerializer):
@@ -48,3 +49,11 @@ class ReservationSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.EquipmentReservation
         fields = ['user_first_name', 'user_last_name', 'date', 'start_time', 'end_time']
+
+class ContractSerializer(serializers.ModelSerializer):
+    company = CompanySerializer()
+    equipment = EquipmentSerializer(many=True)
+
+    class Meta:
+        model = Contract
+        fields = ['id', 'hospital', 'date', 'company', 'equipment']

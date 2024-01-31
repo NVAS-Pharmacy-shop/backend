@@ -11,6 +11,7 @@ from user.models import User
 import logging
 
 logger = logging.getLogger(__name__)
+
 @shared_task
 def check_past_pickup_schedules():
     logger.info("Checking for past pickup schedules...")
@@ -25,40 +26,9 @@ def check_past_pickup_schedules():
                     reservation.status = 'rejected'
                     reservation.save()
                     user = User.objects.get(id=reservation.user_id)
-                    user.penal_amount+=2
+                    user.penal_amount += 2
                     user.save()
     except (EquipmentReservation.DoesNotExist, PickupSchedule.DoesNotExist) as e:
         print(f"Error occurred: {e}")
-@shared_task()
-def process_contract_message(body):
-    print("USO SAM U OVAJ TASK PROCES CONTRACT MESIDZ")
-    try:
-        contract_data = json.loads(body)
-        print("Received contract data:", contract_data)
 
-    except json.JSONDecodeError as e:
-        print(f"Error decoding JSON: {e}")
-
-def start_contract_message_consumer():
-    try:
-        # Connect to RabbitMQ server
-        connection = pika.BlockingConnection(pika.ConnectionParameters('localhost'))
-        channel = connection.channel()
-
-        # Declare the queue
-        channel.queue_declare(queue='contract_requests')
-
-        # Define the callback function to process incoming messages
-        def callback(ch, method, properties, body):
-            process_contract_message(body)
-
-        # Start consuming messages from the queue
-        channel.basic_consume(queue='contract_requests', on_message_callback=callback, auto_ack=True)
-
-        print('Waiting for messages. To exit, press CTRL+C')
-        channel.start_consuming()
-    except pika.exceptions.AMQPConnectionError as e:
-        print(f"Error connecting to RabbitMQ: {e}")
-
-# Pokrenite funkciju za konzumiranje poruka iz reda "contract_requests" kada pokrećete Celery worker
-start_contract_message_consumer()
+def check_contracts():

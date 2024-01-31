@@ -204,4 +204,9 @@ CELERY_BEAT_SCHEDULE = {
         'schedule': 5.0,  # Run every 30 minutes
 
     },
+    'check-contracts': {
+        'task': 'nvasshop.tasks.check_past_pickup_schedules',  # Correct the task path
+        'schedule': 5.0,  # Run every 30 minutes
+
+    },
 }

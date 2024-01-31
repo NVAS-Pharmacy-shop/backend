@@ -58,4 +58,6 @@ class Contract(models.Model):
     hospital = models.IntegerField(default=0)
     date = models.DateTimeField(default='2024-01-01 00:00:00')
     company = models.ForeignKey(Company, related_name='contract_company', on_delete=models.CASCADE)
-    equipment = models.ManyToManyField(Equipment)
+    equipment = models.JSONField(default=dict)
+    
+
