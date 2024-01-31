@@ -30,5 +30,3 @@ def check_past_pickup_schedules():
                     user.save()
     except (EquipmentReservation.DoesNotExist, PickupSchedule.DoesNotExist) as e:
         print(f"Error occurred: {e}")
-
-def check_contracts():

@@ -504,3 +504,36 @@ class HandlingEquipmentReservation(PermissionPolicyMixin, APIView):
             return Response({'msg': 'equipment delivered', 'user': user.email}, status=status.HTTP_200_OK)
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class CompanyContract(PermissionPolicyMixin, APIView):
+    permission_classes_per_method = {
+        "get": [IsAuthenticated, IsCompanyAdmin],
+    }
+
+    def get(self, request):
+        try:
+            contracts = models.Contract.objects.filter(company=request.user.company)
+            return_data = []
+            for contract in contracts:
+                contract_data = {'contract_id': contract.id, 'date': contract.date, 'equipment': []}
+
+                for item in contract.equipment:
+                    equipment_id = item['equipment_id']
+                    quantity = item['quantity']
+
+                    try:
+                        equipment = models.Equipment.objects.get(id=equipment_id)
+                        equipment_data = {'equipment_id': equipment_id, 'name': equipment.name,
+                                          'contract_quantity': quantity, 'quantity': equipment.quantity}
+                        contract_data['equipment'].append(equipment_data)
+                    except Equipment.DoesNotExists:
+                        pass
+                return_data.append(contract_data)
+                return Response(return_data, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    def put(self, request):
+        
+        return Response(status=status.HTTP_200_OK)

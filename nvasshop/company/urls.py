@@ -22,5 +22,6 @@ urlpatterns = [
     path("admin/", views.CompanyAdmin.as_view(), name="admin-company"),
     path("company_customers/", views.CompanyCustomers.as_view(), name="company-customers"),
     path("delivered-equipment/<int:id>/", views.HandlingEquipmentReservation.as_view(), name="delivered-equipment"),
-    path("reservations/", views.HandlingEquipmentReservation.as_view(), name="reservations")
+    path("reservations/", views.HandlingEquipmentReservation.as_view(), name="reservations"),
+    path("contracts/", views.CompanyContract.as_view(), name="contracts")
 ]
