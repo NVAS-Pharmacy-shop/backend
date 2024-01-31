@@ -3,33 +3,31 @@ import pika, sys, os, json
 import googlemaps, time
 
 def main():
-    connection = pika.BlockingConnection(pika.ConnectionParameters(host='localhost'))
-    channel = connection.channel()
+    while True:
+        method_frame, header_frame, body = channel.basic_get('queue1')
+        if method_frame:
+            callback(channel, method_frame, header_frame, body)
+            channel.basic_ack(method_frame.delivery_tag)
+        else:
+            time.sleep(1)
 
-    channel.queue_declare(queue='queue1')
-    channel.queue_declare(queue='queue2')
-
-    def callback(ch, method, properties, body):
+def callback(ch, method, properties, body):
         json_data = json.loads(body.decode('utf-8'))
         start = tuple(json_data["start"])
         end = tuple(json_data["end"])
+        updateFrequency = int(json_data["updateFrequency"])
         print(start, end)
-        send_to_map(start, end, channel)
+        #print("Update frequency: ", updateFrequency)
+        send_to_map(start, end, channel, updateFrequency)
 
-    channel.basic_consume(queue='queue1', on_message_callback=callback, auto_ack=True)
-
-    print(' [*] Waiting for messages. To exit press CTRL+C')
-    channel.start_consuming()
-
-
-def send_to_map(start, end, channel):
+def send_to_map(start, end, channel, updateFrequency):
     api_key = 'AIzaSyALYenrDpiEz0dpZw4QefuAVK0elrLFWMA'
     coordinates = get_route_coordinates(api_key, start, end)
+    coordinates.append({'latitude': 0, 'longitude': 0})
     print(coordinates)
     while(len(coordinates) > 0):
-        channel.basic_publish(exchange='', routing_key='queue2', body=json.dumps(coordinates.pop()))
-        time.sleep(1)
-    
+        channel.basic_publish(exchange='', routing_key='queue2', body=json.dumps(coordinates.pop(0)))
+        time.sleep(updateFrequency)
 
 
 def get_route_coordinates(api_key, start_point, end_point):
@@ -60,6 +58,11 @@ def get_route_coordinates(api_key, start_point, end_point):
 
 if __name__ == '__main__':
     try:
+        connection = pika.BlockingConnection(pika.ConnectionParameters(host='localhost'))
+        channel = connection.channel()
+
+        channel.queue_declare(queue='queue1')
+        channel.queue_declare(queue='queue2')
         main()
     except KeyboardInterrupt:
         print('Interrupted')
