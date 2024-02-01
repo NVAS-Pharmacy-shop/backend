@@ -93,21 +93,30 @@ class Reserve_equipment(PermissionPolicyMixin, APIView):
         if pickup_schedule_id and date != None:
             return Response({'error': 'Pickup schedule and date cannot be both specified'}, status=status.HTTP_400_BAD_REQUEST)
 
-        with atomic():
+        with ((atomic())):
             reservation = models.EquipmentReservation.objects.create(
                 user=user,
                 status=models.EquipmentReservation.EquipmentStatus.PENDING,
             )
             if pickup_schedule_exists:
                 pickup_schedule = models.PickupSchedule.objects.get(id=pickup_schedule_id)
+                pickup_version = pickup_schedule.version
                 reservation.pickup_schedule = pickup_schedule
 
                 for version in equipment_versions:
                     try:
-                        models.Equipment.objects.filter(pk=version.get('equipment_id'), version=version.get('version')).update(reserved_quantity=version.get('reserved_quantity_new'),
-                                                                                           version=version.get('version') + 1)
+                        models.Equipment.objects.filter(pk=version.get('equipment_id'),
+                                                        version=version.get('version')
+                                                        ).update(reserved_quantity=version.get('reserved_quantity_new'),
+                                                        version=version.get('version') + 1)
                     except IntegrityError:
                         print("Conflict: Data has been modified by someone else.")
+
+                try:
+                    models.PickupSchedule.objects.filter(pk=pickup_schedule.id,
+                                                     version=pickup_version).update(version=pickup_version+1)
+                except IntegrityError:
+                    print("Conflict: Data has been modified by someone else.")
 
                 reservation.save()
             else:
@@ -391,9 +400,9 @@ class PickupSchedule(PermissionPolicyMixin, APIView):
         pickup_schedules = models.PickupSchedule.objects.filter(company_id=company.id)
         flag = False
         for schedule in pickup_schedules:
-            print("schedule.date = ", schedule.date, "         ", "date: ", date.date())
-            if schedule.date==date.date():
-                if ((schedule.start_time <= start_time <= schedule.end_time) or (schedule.start_time <= end_time <= schedule.end_time)):
+            if schedule.date == date.date():
+                if ((schedule.start_time <= start_time <= schedule.end_time)
+                        or (schedule.start_time <= end_time <= schedule.end_time)):
                     flag = True
                     break
         return flag
@@ -414,12 +423,19 @@ class PickupSchedule(PermissionPolicyMixin, APIView):
             combined = datetime.combine(date, time)
             pickup_data['end_time'] = (timedelta(minutes=data['duration_minutes']) + combined).time()
             pickup_data['company'] = admin.company
-            with transaction.atomic():
-                if(self.check_overlap(admin.company, date, time, pickup_data['end_time'])):
-                    return Response({'msg':'cannot create schedule due to overlapping'}, status=status.HTTP_400_BAD_REQUEST)
-                else:
-                    pickup_schedule = models.PickupSchedule.objects.create(**pickup_data)
-                    return Response({'msg': 'create schedule', 'schedule': pickup_schedule.id}, status=status.HTTP_201_CREATED)
+
+            while True:
+                with transaction.atomic():
+                    pickup_schedules_count = models.PickupSchedule.objects.filter(company_id=admin.company.id).count()
+                    if(self.check_overlap(admin.company, date, time, pickup_data['end_time'])):
+                        return Response({'msg':'cannot create schedule due to overlapping'}, status=status.HTTP_400_BAD_REQUEST)
+                    else:
+                        if models.PickupSchedule.objects.filter(company_id=admin.company.id).count() == pickup_schedules_count:
+                            pickup_schedule = models.PickupSchedule.objects.create(**pickup_data)
+                            return Response({'msg': 'create schedule', 'schedule': pickup_schedule.id}, status=status.HTTP_201_CREATED)
+                        else:
+                            continue
+
         except Exception as e:
             print(str(e))
             return Response(str(e), status=status.HTTP_500_INTERNAL_SERVER_ERROR)
