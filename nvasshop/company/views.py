@@ -516,7 +516,7 @@ class CompanyContract(PermissionPolicyMixin, APIView):
             contracts = models.Contract.objects.filter(company=request.user.company)
             return_data = []
             for contract in contracts:
-                contract_data = {'contract_id': contract.id, 'date': contract.date, 'equipment': []}
+                contract_data = {'contract_id': contract.id, 'date': contract.date, 'status': contract.status ,'equipment': []}
 
                 for item in contract.equipment:
                     equipment_id = item['equipment_id']
@@ -535,5 +535,5 @@ class CompanyContract(PermissionPolicyMixin, APIView):
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def put(self, request):
-        
+
         return Response(status=status.HTTP_200_OK)
