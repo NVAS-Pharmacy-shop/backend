@@ -12,6 +12,7 @@ def callback(ch, method, properties, body):
     print("Received contract data:", contract_data)
 
     contract_dict = {}
+    contract_dict['id'] = contract_data['contract_id']
     contract_dict['hospital'] = contract_data['hospital_id']
     contract_dict['date'] = datetime.datetime.strptime(contract_data['date'], "%Y-%m-%d,%H:%M:%S")
     contract_dict['company'] = models.Company.objects.get(id=contract_data['company'])
@@ -19,10 +20,8 @@ def callback(ch, method, properties, body):
     contract_dict['status'] = 'active'
     try:
         contract = models.Contract.objects.get(hospital=contract_data['hospital_id'])
-        contract.date = contract_dict['date']
-        contract.equipment = contract_dict['equipment']
-        contract.status = contract_dict['status']
-        contract.save()
+        contract.delete()
+        contract = models.Contract.objects.create(**contract_dict)
     except models.Contract.DoesNotExist:
         contract = models.Contract.objects.create(**contract_dict)
     print(contract)

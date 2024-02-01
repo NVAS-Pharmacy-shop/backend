@@ -36,7 +36,7 @@ def check_past_pickup_schedules():
 def check_contracts():
     all_contracts = Contract.objects.all()
     for contract in all_contracts:
-        if contract.date.date() == datetime.now().date():
+        if contract.date.date() == datetime.now().date() and contract.status == 'active':
             if contract.date.time().hour == datetime.now().time().hour\
                 and contract.date.time().minute == datetime.now().time().minute:
                 send_contract_to_rabbitmq(contract.id)
