@@ -81,7 +81,7 @@ class Reserve_equipment(PermissionPolicyMixin, APIView):
         if pickup_schedule_id and date != None:
             return Response({'error': 'Pickup schedule and date cannot be both specified'}, status=status.HTTP_400_BAD_REQUEST)
 
-        with ((atomic())):
+        with atomic():
             reservation = models.EquipmentReservation.objects.create(
                 user=user,
                 status=models.EquipmentReservation.EquipmentStatus.PENDING,
