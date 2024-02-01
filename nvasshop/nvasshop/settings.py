@@ -14,7 +14,6 @@ from datetime import timedelta
 from pathlib import Path
 from celery.schedules import crontab
 
-
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -34,6 +33,8 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
+    'daphne',
+    'channels',
     'company.apps.CompanyConfig',
     'django.contrib.admin',
     'django.contrib.auth',
@@ -47,7 +48,10 @@ INSTALLED_APPS = [
     'drf_yasg',
     'rest_framework_simplejwt.token_blacklist',
     'corsheaders',
+    'locationsim',
 ]
+
+ASGI_APPLICATION = 'nvasshop.asgi.application'
 
 CORS_ALLOWED_ORIGINS = [
     'http://localhost:3000',
@@ -91,7 +95,7 @@ SIMPLE_JWT = {
 }
 
 MIDDLEWARE = [
-    'django.middleware.security.SecurityMiddleware',
+    #'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -193,11 +197,6 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",  # Adjust this to your React app's origin
-]
-
 CELERY_BROKER_URL = 'amqp://guest:guest@localhost:5672/'
 
 CELERY_BEAT_SCHEDULE = {
@@ -205,4 +204,22 @@ CELERY_BEAT_SCHEDULE = {
         'task': 'nvasshop.tasks.check_past_pickup_schedules', 
         'schedule': crontab(minute='*/30'),  # Run every 30 minutes
     },
+    'check-contracts': {
+        'task': 'nvasshop.tasks.check_contracts',  # Correct the task path
+        'schedule': 10.0,
+    },
+}
+
+# CHANNEL_LAYERS and CACHES should be changed to Redis in production
+
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels.layers.InMemoryChannelLayer',
+    },
+}
+
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+    }
 }

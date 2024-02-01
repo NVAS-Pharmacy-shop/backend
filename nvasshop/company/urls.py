@@ -8,6 +8,7 @@ urlpatterns = [
     path("<int:id>/", Company.as_view(), name="company-detail"),
     path("", Company.as_view(), name="company-list"),
     path("equipment/", Equipment.as_view(), name="equipment-list"),
+    path("equipment/<int:id>/", Equipment.as_view(), name="equipment-list"),
     path("base_info/<int:id>/", views.CompanyBaseInfo.as_view(), name="company-base-info-detail"),
     path("base_info/", views.CompanyBaseInfo.as_view(), name="company-base-info-list"),
     path("reserve/", Reserve_equipment.as_view()),
@@ -24,4 +25,4 @@ urlpatterns = [
     path("company_customers/", views.CompanyCustomers.as_view(), name="company-customers"),
     path("delivered-equipment/<int:id>/", views.HandlingEquipmentReservation.as_view(), name="delivered-equipment"),
     path("reservations/", views.HandlingEquipmentReservation.as_view(), name="reservations"),
-]
+    path("contracts/", views.CompanyContract.as_view(), name="contracts")
