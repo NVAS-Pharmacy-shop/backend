@@ -67,19 +67,23 @@ class Reserve_equipment(PermissionPolicyMixin, APIView):
             try:
                 equipment_id = reserved_equipment['equipment_id']
                 equipment = models.Equipment.objects.get(id=equipment_id)
-                ver = equipment.version
-                res_quantity = equipment.reserved_quantity
-                equipment_versions.append({'equipment_id': equipment_id, 'version': ver, 'reserved_quantity_new': (res_quantity + reserved_equipment.get('quantity'))})
 
                 if equipment.company_id != company_id:
                     return Response({'error': 'wrong_item'}, status=status.HTTP_400_BAD_REQUEST)
+                
+                original_version = equipment.version
+                new_res_quantity = reserved_equipment['quantity'] + equipment.reserved_quantity
+
+                quantity = reserved_equipment['quantity']
+                if equipment.quantity < new_res_quantity:
+                    return Response({'error': 'Not enough equipment'}, status=status.HTTP_400_BAD_REQUEST)
+
+                equipment_versions.append({'equipment_id': equipment_id, 'version': original_version, 'reserved_quantity_new': new_res_quantity})
+                equipments.append(tuple((equipment, quantity)))
+
             except models.Equipment.DoesNotExist:
                 return Response({'error': 'Equipment not found'}, status=status.HTTP_404_NOT_FOUND)
-            quantity = reserved_equipment['quantity']
-            if equipment.quantity < quantity + equipment.reserved_quantity:
-                return Response({'error': 'Not enough equipment'}, status=status.HTTP_400_BAD_REQUEST)
-
-            equipments.append(tuple((equipment, quantity)))
+            
 
         pickup_schedule_exists = models.PickupSchedule.objects.filter(id=pickup_schedule_id).exists()
 
@@ -100,7 +104,7 @@ class Reserve_equipment(PermissionPolicyMixin, APIView):
 
                 for version in equipment_versions:
                     try:
-                        models.Equipment.objects.filter(pk=version.get('id'), version=version.get('version')).update(reserved_quantity=version.get('reserved_quantity_new'),
+                        models.Equipment.objects.filter(pk=version.get('equipment_id'), version=version.get('version')).update(reserved_quantity=version.get('reserved_quantity_new'),
                                                                                            version=version.get('version') + 1)
                     except IntegrityError:
                         print("Conflict: Data has been modified by someone else.")
@@ -134,7 +138,7 @@ class Reserve_equipment(PermissionPolicyMixin, APIView):
 
                 for version in equipment_versions:
                     try:
-                        models.Equipment.objects.filter(pk=version.get('id'), version=version.get('version')).update(reserved_quantity=version.get('reserved_quantity_new'),
+                        models.Equipment.objects.filter(pk=version.get('equipment_id'), version=version.get('version')).update(reserved_quantity=version.get('reserved_quantity_new'),
                                                                                            version=version.get('version') + 1)
                     except IntegrityError:
                         print("Conflict: Data has been modified by someone else.")
