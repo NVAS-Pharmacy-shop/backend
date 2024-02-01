@@ -10,12 +10,15 @@ from django.shortcuts import get_object_or_404
 from shared.mixins import PermissionPolicyMixin
 from auth.custom_permissions import IsCompanyAdmin
 from user.models import User
+
+
 class User(PermissionPolicyMixin, APIView):
 
     permission_classes_per_method = {
         "get": [IsAuthenticated],
         "put": [IsAuthenticated],
     }
+    
     def get(self, request, id=None):
         print(request.META)
         if id:
