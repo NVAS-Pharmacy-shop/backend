@@ -441,7 +441,6 @@ class CompanyCustomers(PermissionPolicyMixin, APIView):
                     if user not in users:
                         users.append(user)
             serializer = CompanyAdminSerializer(users, many=True)
-            print("COA")
             return Response({'msg': 'get company customers', 'customers': serializer.data}, status=status.HTTP_200_OK)
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

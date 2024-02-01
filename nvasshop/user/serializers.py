@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from company.serializers import PickupScheduleSerializer, ReservationSerializer
+from company.serializers import ReservationSerializer
 from . import models
 
 class UserSerializer(serializers.ModelSerializer):
