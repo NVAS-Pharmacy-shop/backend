@@ -1,4 +1,6 @@
+from django.utils import timezone
 from django.db import models
+
 
 class Company(models.Model):
     name = models.CharField(max_length=50)
@@ -19,6 +21,7 @@ class EquipmentType(models.IntegerChoices):
     PATIENT_CARE_EQUIPMENT = 5, 'Patient Care Equipment'
     ORTHOPEDIC_EQUIPMENT = 6, 'Orthopedic Equipment'
 
+
 class Equipment(models.Model):
     company = models.ForeignKey(Company, related_name='equipment', on_delete=models.CASCADE, default=0)
     name = models.CharField(max_length=50)
@@ -28,6 +31,7 @@ class Equipment(models.Model):
         choices=EquipmentType.choices,
         default=EquipmentType.DIAGNOSTIC_EQUIPMENT,
     )
+
 
 class PickupSchedule(models.Model):
     company = models.ForeignKey(Company, related_name='pickup_schedule_company', on_delete=models.CASCADE)
@@ -49,14 +53,16 @@ class EquipmentReservation(models.Model):
     user = models.ForeignKey('user.User', related_name='user_reservations', on_delete=models.CASCADE, default=0)
     status = models.CharField(max_length=15, choices=EquipmentStatus.choices, default=EquipmentStatus.PENDING)
 
+
 class ReservedEquipment(models.Model):
     equipment = models.ForeignKey(Equipment, related_name='reserved_equipment', on_delete=models.CASCADE, default=0)
     reservation = models.ForeignKey(EquipmentReservation, related_name='reserved_equipment', on_delete=models.CASCADE, default=0)
     quantity = models.IntegerField(default=0)
 
+
 class Contract(models.Model):
     hospital = models.IntegerField(default=0)
-    date = models.DateTimeField(default='2024-01-01 00:00:00')
+    date = models.DateTimeField(default=timezone.now)
     company = models.ForeignKey(Company, related_name='contract_company', on_delete=models.CASCADE)
     equipment = models.JSONField(default=dict)
     status = models.CharField(max_length=15, default='active')

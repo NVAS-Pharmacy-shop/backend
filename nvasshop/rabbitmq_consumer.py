@@ -1,7 +1,9 @@
-import datetime
+from datetime import datetime
 
 import pika
 import json
+
+import pytz
 
 from company import models
 from company.models import Contract
@@ -14,7 +16,7 @@ def callback(ch, method, properties, body):
     contract_dict = {}
     contract_dict['id'] = contract_data['contract_id']
     contract_dict['hospital'] = contract_data['hospital_id']
-    contract_dict['date'] = datetime.datetime.strptime(contract_data['date'], "%Y-%m-%d,%H:%M:%S")
+    contract_dict['date'] = contract_data['date']
     contract_dict['company'] = models.Company.objects.get(id=contract_data['company'])
     contract_dict['equipment'] = contract_data['equipment']
     contract_dict['status'] = 'active'

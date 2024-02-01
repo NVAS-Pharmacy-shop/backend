@@ -25,6 +25,7 @@ from drf_yasg.utils import swagger_auto_schema
 from multiprocessing import Process
 from user.models import User
 from .mail import send_reservation_email, equipment_delivered
+from user.serializers import CompanyAdminSerializer
 
 def get_reserved_quantity(equipment_id):
     reserved_equipment = models.ReservedEquipment.objects.filter(
@@ -439,7 +440,8 @@ class CompanyCustomers(PermissionPolicyMixin, APIView):
                     user = User.objects.get(id=reservation.user_id)
                     if user not in users:
                         users.append(user)
-            serializer = serializers.CompanyAdminSerializer(users, many=True)
+            serializer = CompanyAdminSerializer(users, many=True)
+            print("COA")
             return Response({'msg': 'get company customers', 'customers': serializer.data}, status=status.HTTP_200_OK)
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
