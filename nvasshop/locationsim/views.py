@@ -19,8 +19,10 @@ class RouteCoordinates(PermissionPolicyMixin, APIView):
 
     def post(self, request):
         updateFrequency = request.data["updateFrequency"]
-        start_coordinates = [45.304175, 19.830661]
-        end_coordinates = [45.244328, 19.841727] 
+        start_coordinates = request.data["start_coordinates"]
+        end_coordinates = request.data["end_coordinates"]
+        #start_coordinates = [45.304175, 19.830661]
+        #end_coordinates = [45.244328, 19.841727] 
 
         json_data= {
             "start": start_coordinates,
