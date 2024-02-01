@@ -7,7 +7,7 @@ from user.models import User
 class EquipmentSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.Equipment
-        fields = ['id', 'name', 'description', 'quantity', 'type', 'company']
+        fields = ['id', 'name', 'description', 'quantity', 'type', 'company', 'reserved_quantity']
 
 
 class CompanyAdminSerializer(serializers.ModelSerializer):

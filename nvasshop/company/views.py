@@ -30,18 +30,6 @@ from user.serializers import UserSerializer
 from .mail import send_reservation_email, equipment_delivered
 from user.serializers import CompanyAdminSerializer
 
-def get_reserved_quantity(equipment_id):
-    reserved_equipment = models.ReservedEquipment.objects.filter(
-        equipment_id=equipment_id,
-        reservation__status=models.EquipmentReservation.EquipmentStatus.PENDING
-    )
-
-    # aggregate performs calculations inside the database. It returns a dictionary with the results.
-    # More operations can be added to the aggregate function and each value will be added to the dictionary.
-    total_quantity = reserved_equipment.aggregate(Sum('quantity'))['quantity__sum']
-
-    return total_quantity if total_quantity is not None else 0
-
 class Reserve_equipment(PermissionPolicyMixin, APIView):
     permission_classes_per_method = {
         "post": [IsAuthenticated],
@@ -229,8 +217,15 @@ class UserReservations(PermissionPolicyMixin, APIView):
                 print(self.calcUserPenal(reservation.pickup_schedule.date))
                 user.penal_amount += self.calcUserPenal(reservation.pickup_schedule.date)
 
+                reserved_equipments = models.ReservedEquipment.objects.filter(reservation=reservation)
+                for reserved_equipment in reserved_equipments:
+                    equipment = reserved_equipment.equipment
+                    equipment.reserved_quantity -= reserved_equipment.quantity
+                    equipment.save()
+
                 user.save()
                 reservation.status = 'canceled'
+
                 reservation.save()
                 return Response({'msg': 'Reservation deleted successfully'}, status=status.HTTP_204_NO_CONTENT)
             else:
@@ -288,7 +283,7 @@ class Company(PermissionPolicyMixin, APIView):
                 serializer = serializers.FullInfoCompanySerializer(company)
                 data = serializer.data
                 for equipment in data['equipment']:
-                    reserved_quantity = get_reserved_quantity(equipment['id'])
+                    reserved_quantity = equipment['reserved_quantity']
 
                     # Subtract the reserved quantity from the equipment's quantity
                     equipment['quantity'] -= reserved_quantity
@@ -344,13 +339,10 @@ class Equipment(PermissionPolicyMixin, APIView):
         if 'company_rating' in request.GET:
             filters['company__rate__gte'] = request.GET['company_rating']
 
-            equipment = models.Equipment.objects.filter(**filters)
-            serializer = serializers.EquipmentSerializer(equipment, many=True)
-            return Response({'msg': 'get matching equipment', 'equipment': serializer.data}, status=status.HTTP_200_OK)
-        else:
-            equipment = models.Equipment.objects.filter(company_id=id)
-            serializer = serializers.EquipmentSerializer(equipment, many=True)
-            return Response({'msg': 'get matching equipment', 'equipment': serializer.data}, status=status.HTTP_200_OK)
+        equipment = models.Equipment.objects.filter(**filters)
+        serializer = serializers.EquipmentSerializer(equipment, many=True)
+        return Response({'msg': 'get matching equipment', 'equipment': serializer.data}, status=status.HTTP_200_OK)
+        
 
 class CompanyBaseInfo(APIView):
     def get(self, request, id=None):
@@ -463,9 +455,8 @@ class Equipment_CompanyAdmin(APIView):
             equipment = models.Equipment.objects.get(id=request.data['id'])
 
             data = request.data
-            reserved_quantity = get_reserved_quantity(data['id'])
 
-            if int(data['quantity']) < reserved_quantity:
+            if int(data['quantity']) < equipment.reserved_quantity:
                 return Response({'error': f"Quantity for equipment {data['id']} is less than the reserved quantity"}, status=status.HTTP_400_BAD_REQUEST)
 
 
