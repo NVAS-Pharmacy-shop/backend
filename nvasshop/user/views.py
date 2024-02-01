@@ -63,9 +63,9 @@ class CompanyAdmin(PermissionPolicyMixin, APIView):
         "get": [IsAuthenticated, IsCompanyAdmin],
         "put":  [IsAuthenticated, IsCompanyAdmin]
     }
-    def get(self, request, company_id=None):
-        if company_id:
-            users = models.User.objects.filter(company_id=company_id)
+    def get(self, request, id=None):
+        if id:
+            users = models.User.objects.filter(company_id=id)
             serializer = serializers.CompanyAdminSerializer(users, many=True)
             return Response({'msg': 'get all user', 'user': serializer.data}, status=status.HTTP_200_OK)
         else:
