@@ -4,6 +4,8 @@ import threading
 from io import BytesIO
 import qrcode
 from django.core.mail import send_mail, EmailMessage
+from django.core.cache import cache
+from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Prefetch, Q, F, Sum
 from django.db.transaction import atomic
 from django.shortcuts import get_object_or_404
@@ -445,15 +447,21 @@ class CompanyCustomers(PermissionPolicyMixin, APIView):
     def get(self, request):
         try:
             company = models.Company.objects.get(admin=request.user.id)
-            reservations = models.EquipmentReservation.objects.all()
-            users = []
-            for reservation in reservations:
-                if(models.PickupSchedule.objects.get(id=reservation.pickup_schedule_id).company_id == company.id):
-                    user = User.objects.get(id=reservation.user_id)
-                    if user not in users:
-                        users.append(user)
+
+            users = cache.get(f'company_customers_{company.id}')
+
+            if users is None:
+                #print('querying db')
+                users = User.objects.filter(
+                    user_reservations__pickup_schedule__company_id=company.id
+                ).distinct()
+                cache.set(f'company_customers_{company.id}', users, 300)
+
             serializer = serializers.CompanyAdminSerializer(users, many=True)
             return Response({'msg': 'get company customers', 'customers': serializer.data}, status=status.HTTP_200_OK)
+
+        except ObjectDoesNotExist as e:
+            return Response({'error': 'Company not found'}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 

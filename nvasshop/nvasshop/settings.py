@@ -207,8 +207,16 @@ CELERY_BEAT_SCHEDULE = {
     },
 }
 
+# CHANNEL_LAYERS and CACHES should be changed to Redis in production
+
 CHANNEL_LAYERS = {
     'default': {
         'BACKEND': 'channels.layers.InMemoryChannelLayer',
     },
+}
+
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+    }
 }
