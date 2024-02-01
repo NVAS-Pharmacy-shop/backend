@@ -13,6 +13,8 @@ from django.utils.html import strip_tags
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework import status
+
+from producers import contract_cancellation
 from . import models
 from . import serializers
 from rest_framework.permissions import IsAuthenticated
@@ -535,5 +537,13 @@ class CompanyContract(PermissionPolicyMixin, APIView):
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def put(self, request):
-
+        try:
+            data = request.data
+            contract = models.Contract.objects.get(id=data['contract_id'])
+            contract.status = 'cancelled'
+            contract.save()
+            contract_cancellation(contract.id)
+            return Response({'msg': 'contract cancelled'}, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         return Response(status=status.HTTP_200_OK)
