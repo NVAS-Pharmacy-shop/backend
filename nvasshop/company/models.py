@@ -31,6 +31,8 @@ class Equipment(models.Model):
         choices=EquipmentType.choices,
         default=EquipmentType.DIAGNOSTIC_EQUIPMENT,
     )
+    version = models.IntegerField(default=0)
+    reserved_quantity = models.IntegerField(default=0)
 
 
 class PickupSchedule(models.Model):
@@ -39,6 +41,7 @@ class PickupSchedule(models.Model):
     date = models.DateField(default='2023-01-01')
     start_time = models.TimeField(default='00:00:00')
     end_time = models.TimeField(default='00:00:00')
+    version = models.IntegerField(default=0)
 
 
 class EquipmentReservation(models.Model):

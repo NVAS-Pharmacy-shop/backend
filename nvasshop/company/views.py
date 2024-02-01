@@ -4,7 +4,7 @@ import threading
 from io import BytesIO
 import qrcode
 from django.core.mail import send_mail, EmailMessage
-from django.db import transaction
+from django.db import transaction, IntegrityError
 from django.core.cache import cache
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Prefetch, Q, F, Sum
@@ -46,6 +46,7 @@ class Reserve_equipment(PermissionPolicyMixin, APIView):
         "post": [IsAuthenticated],
     }
 
+
     def post(self, request):
         user = request.user
         reserved_equipments = request.data['equipments']
@@ -60,18 +61,21 @@ class Reserve_equipment(PermissionPolicyMixin, APIView):
             pickup_schedule_id = request.data['pickup_schedule_id']
 
         equipments = []
-
+        equipment_versions = []
         for reserved_equipment in reserved_equipments:
             try:
                 equipment_id = reserved_equipment['equipment_id']
                 equipment = models.Equipment.objects.get(id=equipment_id)
+                ver = equipment.version
+                res_quantity = equipment.reserved_quantity
+                equipment_versions.append({'equipment_id': equipment_id, 'version': ver, 'reserved_quantity_new': (res_quantity + reserved_equipment.get('quantity'))})
+
                 if equipment.company_id != company_id:
                     return Response({'error': 'wrong_item'}, status=status.HTTP_400_BAD_REQUEST)
             except models.Equipment.DoesNotExist:
                 return Response({'error': 'Equipment not found'}, status=status.HTTP_404_NOT_FOUND)
             quantity = reserved_equipment['quantity']
-            reserved_quantity = get_reserved_quantity(equipment_id)
-            if equipment.quantity < quantity + reserved_quantity:
+            if equipment.quantity < quantity + equipment.reserved_quantity:
                 return Response({'error': 'Not enough equipment'}, status=status.HTTP_400_BAD_REQUEST)
 
             equipments.append(tuple((equipment, quantity)))
@@ -92,6 +96,14 @@ class Reserve_equipment(PermissionPolicyMixin, APIView):
             if pickup_schedule_exists:
                 pickup_schedule = models.PickupSchedule.objects.get(id=pickup_schedule_id)
                 reservation.pickup_schedule = pickup_schedule
+
+                for version in equipment_versions:
+                    try:
+                        models.Equipment.objects.filter(pk=version.get('id'), version=version.get('version')).update(reserved_quantity=version.get('reserved_quantity_new'),
+                                                                                           version=version.get('version') + 1)
+                    except IntegrityError:
+                        print("Conflict: Data has been modified by someone else.")
+
                 reservation.save()
             else:
                 date = parse_datetime(date)
@@ -118,12 +130,18 @@ class Reserve_equipment(PermissionPolicyMixin, APIView):
                     return Response({'error': 'No company admin is available at this time'}, status=status.HTTP_400_BAD_REQUEST)
 
                 reservation.pickup_schedule = pickup_schedule
+
+                for version in equipment_versions:
+                    try:
+                        models.Equipment.objects.filter(pk=version.get('id'), version=version.get('version')).update(reserved_quantity=version.get('reserved_quantity_new'),
+                                                                                           version=version.get('version') + 1)
+                    except IntegrityError:
+                        print("Conflict: Data has been modified by someone else.")
+
                 reservation.save()
 
 
             for equipment, quantity in equipments:
-                #equipment.quantity -= quantity
-                #equipment.save()
                 models.ReservedEquipment.objects.create(
                     reservation=reservation,
                     equipment=equipment,
@@ -217,7 +235,7 @@ class Company(PermissionPolicyMixin, APIView):
         elif id:
             try:
                 company = get_object_or_404(models.Company.objects.prefetch_related(
-                    Prefetch('pickup_schedules', queryset=models.PickupSchedule.objects.filter(equipment_reservation__isnull=True),
+                    Prefetch('pickup_schedule_company', queryset=models.PickupSchedule.objects.filter(equipment_reservation__isnull=True),
                              to_attr='filtered_pickup_schedules'),
                 ), id=id)
                 serializer = serializers.FullInfoCompanySerializer(company)
