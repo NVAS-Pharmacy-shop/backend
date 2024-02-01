@@ -14,7 +14,6 @@ from datetime import timedelta
 from pathlib import Path
 from celery.schedules import crontab
 
-
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -200,15 +199,21 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 CELERY_BROKER_URL = 'amqp://guest:guest@localhost:5672/'
 
+
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels.layers.InMemoryChannelLayer',
+    }
+}
+
+
 CELERY_BEAT_SCHEDULE = {
     'check-past-pickup-schedules': {
         'task': 'nvasshop.tasks.check_past_pickup_schedules', 
         'schedule': crontab(minute='*/30'),  # Run every 30 minutes
     },
-}
-
-CHANNEL_LAYERS = {
-    'default': {
-        'BACKEND': 'channels.layers.InMemoryChannelLayer',
+    'check-contracts': {
+        'task': 'nvasshop.tasks.check_contracts',  # Correct the task path
+        'schedule': 10.0,
     },
 }

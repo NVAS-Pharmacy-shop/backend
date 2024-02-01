@@ -4,6 +4,7 @@ import threading
 from io import BytesIO
 import qrcode
 from django.core.mail import send_mail, EmailMessage
+from django.db import transaction
 from django.db.models import Prefetch, Q, F, Sum
 from django.db.transaction import atomic
 from django.shortcuts import get_object_or_404
@@ -12,6 +13,8 @@ from django.utils.html import strip_tags
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework import status
+
+from producers import contract_cancellation
 from . import models
 from . import serializers
 from rest_framework.permissions import IsAuthenticated
@@ -22,6 +25,7 @@ from drf_yasg.utils import swagger_auto_schema
 from multiprocessing import Process
 from user.models import User
 from .mail import send_reservation_email, equipment_delivered
+from user.serializers import CompanyAdminSerializer
 
 def get_reserved_quantity(equipment_id):
     reserved_equipment = models.ReservedEquipment.objects.filter(
@@ -258,20 +262,25 @@ class Company(PermissionPolicyMixin, APIView):
 
 
 class Equipment(APIView):
-    def get(self, request):
-        filters = {}
-        if 'company_id' in request.GET:
-            filters['company_id'] = request.GET['company_id']
-        if 'name_substring' in request.GET:
-            filters['name__icontains'] = request.GET['name_substring']
-        if 'type' in request.GET:
-            filters['type'] = request.GET['type']
-        if 'company_rating' in request.GET:
-            filters['company__rate__gte'] = request.GET['company_rating']
+    def get(self, request, id=None):
+        if id==None:
+            filters = {}
+            if 'company_id' in request.GET:
+                filters['company_id'] = request.GET['company_id']
+            if 'name_substring' in request.GET:
+                filters['name__icontains'] = request.GET['name_substring']
+            if 'type' in request.GET:
+                filters['type'] = request.GET['type']
+            if 'company_rating' in request.GET:
+                filters['company__rate__gte'] = request.GET['company_rating']
 
-        equipment = models.Equipment.objects.filter(**filters)
-        serializer = serializers.EquipmentSerializer(equipment, many=True)
-        return Response({'msg': 'get matching equipment', 'equipment': serializer.data}, status=status.HTTP_200_OK)
+            equipment = models.Equipment.objects.filter(**filters)
+            serializer = serializers.EquipmentSerializer(equipment, many=True)
+            return Response({'msg': 'get matching equipment', 'equipment': serializer.data}, status=status.HTTP_200_OK)
+        else:
+            equipment = models.Equipment.objects.filter(company_id=id)
+            serializer = serializers.EquipmentSerializer(equipment, many=True)
+            return Response({'msg': 'get matching equipment', 'equipment': serializer.data}, status=status.HTTP_200_OK)
 
 class CompanyBaseInfo(APIView):
     def get(self, request, id=None):
@@ -308,8 +317,8 @@ class PickupSchedule(PermissionPolicyMixin, APIView):
         except Exception as e:
             return Response({'error': f'An error occurred: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-    def check_overlap(self, admin_id, date, start_time, end_time):
-        pickup_schedules = models.PickupSchedule.objects.filter(company_admin_id=admin_id)
+    def check_overlap(self, company, date, start_time, end_time):
+        pickup_schedules = models.PickupSchedule.objects.filter(company_id=company.id)
         flag = False
         for schedule in pickup_schedules:
             print("schedule.date = ", schedule.date, "         ", "date: ", date.date())
@@ -319,6 +328,7 @@ class PickupSchedule(PermissionPolicyMixin, APIView):
                     break
         return flag
 
+    @transaction.atomic
     def post(self, request):
         try:
             pickup_data = {}
@@ -334,19 +344,12 @@ class PickupSchedule(PermissionPolicyMixin, APIView):
             combined = datetime.combine(date, time)
             pickup_data['end_time'] = (timedelta(minutes=data['duration_minutes']) + combined).time()
             pickup_data['company'] = admin.company
-            print(self.check_overlap(admin.id, date, time, pickup_data['end_time']))
-            if(self.check_overlap(admin.id, date, time, pickup_data['end_time'])):
-                return Response({'msg':'cannot create schedule due to overlapping'}, status=status.HTTP_400_BAD_REQUEST)
-            else:
-                pickup_schedule = models.PickupSchedule.objects.create(**pickup_data)
-                return Response({'msg': 'create schedule', 'schedule': pickup_schedule.id}, status=status.HTTP_201_CREATED)
-
-            # serializer = serializers.PickupScheduleSerializer(**pickup_data)
-            # if serializer.is_valid():
-            #     serializer.save()
-            #     print("serializer data:", serializer.data)
-            #     return Response(serializer.data, status=status.HTTP_201_CREATED)
-            # return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            with transaction.atomic():
+                if(self.check_overlap(admin.company, date, time, pickup_data['end_time'])):
+                    return Response({'msg':'cannot create schedule due to overlapping'}, status=status.HTTP_400_BAD_REQUEST)
+                else:
+                    pickup_schedule = models.PickupSchedule.objects.create(**pickup_data)
+                    return Response({'msg': 'create schedule', 'schedule': pickup_schedule.id}, status=status.HTTP_201_CREATED)
         except Exception as e:
             print(str(e))
             return Response(str(e), status=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -448,7 +451,7 @@ class CompanyCustomers(PermissionPolicyMixin, APIView):
                     user = User.objects.get(id=reservation.user_id)
                     if user not in users:
                         users.append(user)
-            serializer = serializers.CompanyAdminSerializer(users, many=True)
+            serializer = CompanyAdminSerializer(users, many=True)
             return Response({'msg': 'get company customers', 'customers': serializer.data}, status=status.HTTP_200_OK)
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -515,3 +518,44 @@ class HandlingEquipmentReservation(PermissionPolicyMixin, APIView):
             return Response({'msg': 'equipment delivered', 'user': user.email}, status=status.HTTP_200_OK)
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class CompanyContract(PermissionPolicyMixin, APIView):
+    permission_classes_per_method = {
+        "get": [IsAuthenticated, IsCompanyAdmin],
+    }
+
+    def get(self, request):
+        try:
+            contracts = models.Contract.objects.filter(company=request.user.company)
+            return_data = []
+            for contract in contracts:
+                contract_data = {'contract_id': contract.id, 'date': contract.date, 'status': contract.status ,'equipment': []}
+
+                for item in contract.equipment:
+                    equipment_id = item['equipment_id']
+                    quantity = item['quantity']
+
+                    try:
+                        equipment = models.Equipment.objects.get(id=equipment_id)
+                        equipment_data = {'equipment_id': equipment_id, 'name': equipment.name,
+                                          'contract_quantity': quantity, 'quantity': equipment.quantity}
+                        contract_data['equipment'].append(equipment_data)
+                    except Equipment.DoesNotExists:
+                        pass
+                return_data.append(contract_data)
+                return Response(return_data, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    def put(self, request):
+        try:
+            data = request.data
+            contract = models.Contract.objects.get(id=data['contract_id'])
+            contract.status = 'cancelled'
+            contract.save()
+            contract_cancellation(contract.id)
+            return Response({'msg': 'contract cancelled'}, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return Response(status=status.HTTP_200_OK)

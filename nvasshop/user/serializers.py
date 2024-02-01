@@ -1,7 +1,10 @@
 from rest_framework import serializers
+
+from company.serializers import ReservationSerializer
 from . import models
 
 class UserSerializer(serializers.ModelSerializer):
+    user_reservations = ReservationSerializer(many=True, read_only=True)
     class Meta:
         model = models.User
         fields = '__all__'
