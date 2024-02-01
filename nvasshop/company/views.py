@@ -257,7 +257,11 @@ class Company(PermissionPolicyMixin, APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-class Equipment(APIView):
+class Equipment(PermissionPolicyMixin, APIView):
+    permission_classes_per_method = {
+        "get": [IsAuthenticated]
+    }
+
     def get(self, request):
         filters = {}
         if 'company_id' in request.GET:
