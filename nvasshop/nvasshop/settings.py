@@ -199,14 +199,6 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 CELERY_BROKER_URL = 'amqp://guest:guest@localhost:5672/'
 
-
-CHANNEL_LAYERS = {
-    'default': {
-        'BACKEND': 'channels.layers.InMemoryChannelLayer',
-    }
-}
-
-
 CELERY_BEAT_SCHEDULE = {
     'check-past-pickup-schedules': {
         'task': 'nvasshop.tasks.check_past_pickup_schedules', 
@@ -216,4 +208,18 @@ CELERY_BEAT_SCHEDULE = {
         'task': 'nvasshop.tasks.check_contracts',  # Correct the task path
         'schedule': 10.0,
     },
+}
+
+# CHANNEL_LAYERS and CACHES should be changed to Redis in production
+
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels.layers.InMemoryChannelLayer',
+    },
+}
+
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+    }
 }
