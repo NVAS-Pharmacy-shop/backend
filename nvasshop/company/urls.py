@@ -17,6 +17,8 @@ urlpatterns = [
     path("schedules/", views.PickupSchedule.as_view(), name="get-schedule"),
     path("equipment/admin/", views.Equipment_CompanyAdmin.as_view(), name="equipment-admin-list"),
     path("reserve/", Reserve_equipment.as_view()),
+    path("reservations/user/<int:id>/", views.UserReservations.as_view(), name="userReservations"),
+    path("reservations/<int:reservationId>/", views.UserReservations.as_view(), name="userReservations"),
     path("equipment/admin/<int:id>/", views.Equipment_CompanyAdmin.as_view(), name="equipment-admin-detail"),
     path("reservations/<str:date_str>/<str:period>/", views.CompanyReservations.as_view(), name="company-reservations"),
     path("admin/", views.CompanyAdmin.as_view(), name="admin-company"),
@@ -24,4 +26,3 @@ urlpatterns = [
     path("delivered-equipment/<int:id>/", views.HandlingEquipmentReservation.as_view(), name="delivered-equipment"),
     path("reservations/", views.HandlingEquipmentReservation.as_view(), name="reservations"),
     path("contracts/", views.CompanyContract.as_view(), name="contracts")
-]

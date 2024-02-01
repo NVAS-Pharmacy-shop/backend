@@ -26,6 +26,7 @@ from django.http import Http404
 from drf_yasg.utils import swagger_auto_schema
 from multiprocessing import Process
 from user.models import User
+from user.serializers import UserSerializer
 from .mail import send_reservation_email, equipment_delivered
 from user.serializers import CompanyAdminSerializer
 
@@ -181,6 +182,48 @@ class CompanyReservations(PermissionPolicyMixin, APIView):
         combined_data = reservation_serializer.data + pickup_schedule_serializer.data
 
         return Response({'msg': 'Appointments retrieved', 'reservations': combined_data}, status=status.HTTP_200_OK) 
+
+
+class UserReservations(PermissionPolicyMixin, APIView):
+    permission_classes_per_method = {
+        "get": [IsAuthenticated],
+        "delete": [IsAuthenticated],
+    }
+
+    def get(self, request, id=None):
+        reservations = models.EquipmentReservation.objects.filter(user_id = id, status = 'pending')
+
+        serializer = serializers.ReservationSerializer(reservations, many=True)
+
+        return Response({'msg': 'Reservations retrieved', 'reservations': serializer.data}, status=status.HTTP_200_OK) 
+    
+
+
+    def delete(self, request, reservationId=None):
+        if reservationId is not None:
+            reservation = models.EquipmentReservation.objects.get(id = reservationId)
+            if reservation is not None:
+                user = User.objects.get(id = reservation.user_id)
+                print(self.calcUserPenal(reservation.pickup_schedule.date))
+                user.penal_amount += self.calcUserPenal(reservation.pickup_schedule.date)
+
+                user.save()
+                reservation.status = 'canceled'
+                reservation.save()
+                return Response({'msg': 'Reservation deleted successfully'}, status=status.HTTP_204_NO_CONTENT)
+            else:
+                return Response({'error': 'No reservation with that ID'}, status=status.HTTP_400_BAD_REQUEST)
+        else:
+             return Response({'error': 'Equipment ID is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+    def calcUserPenal(self, date):
+        today = datetime.now().date()
+        diff = date - today
+
+        penal = 1
+        if diff.days <= 1:
+            penal = 2
+        return penal
 
 
 class CompanyAdmin(PermissionPolicyMixin, APIView):
