@@ -573,8 +573,10 @@ class HandlingEquipmentReservation(PermissionPolicyMixin, APIView):
     def put(self, request, id=None):
         try:
             reservation = models.EquipmentReservation.objects.get(id=id)
+
             if reservation.pickup_schedule.company_admin != request.user:
-                return Response({'error': 'You are not authorized to process this reservation.'}, status=status.HTTP_403_FORBIDDEN)
+                return Response({'error': 'You are not authorized to process this reservation.'},
+                                status=status.HTTP_403_FORBIDDEN)
             
             if reservation.status != 'pending':
                 return Response({'error': 'Invalid reservation'}, status=status.HTTP_400_BAD_REQUEST)
@@ -582,11 +584,27 @@ class HandlingEquipmentReservation(PermissionPolicyMixin, APIView):
             reservation.status = 'delivered'
             reserved_equipment = models.ReservedEquipment.objects.filter(reservation_id=reservation.id)
 
-            for e in reserved_equipment:
-                e.equipment.quantity -= e.quantity
-                e.equipment.save()
 
-            reservation.save()
+
+            reserved_equipment_versions = []
+            for re in reserved_equipment:
+                equipment = models.Equipment.objects.get(id=re.equipment.id)
+                reserved_equipment_versions.append({'equipment_id': equipment.id, 'version': equipment.version,
+                                                    'reserved_quantity': equipment.reserved_quantity,
+                                                    'quantity': equipment.quantity,
+                                                    'reserved_equipment_quantity': re.quantity})
+
+            with atomic():
+                for rev in reserved_equipment_versions:
+                    try:
+                        models.Equipment.objects.filter(pk=rev.get('equipment_id'),
+                                                        version=rev.get('version')).update(
+                            reserved_quantity=rev.get('reserved_quantity') - rev.get('reserved_equipment_quantity'),
+                            version=rev.get('version') + 1,
+                            quantity=rev.get('quantity') - rev.get('reserved_equipment_quantity'))
+                    except IntegrityError:
+                        print("Conflict: Data has been modified by someone else.")
+                reservation.save()
 
             user = User.objects.get(id=reservation.user_id)
             email_thread = threading.Thread(target=equipment_delivered, args=(reservation.id, user.email))
