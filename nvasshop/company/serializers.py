@@ -39,6 +39,7 @@ class CompanyBaseInfoSerializer(serializers.ModelSerializer):
         fields = ['id', 'name', 'address', 'email', 'website', 'rate', 'description' ]
 
 class ReservationSerializer(serializers.ModelSerializer):
+    reservation_id = serializers.IntegerField(source = 'id')
     user_first_name = serializers.CharField(source='user.first_name')
     user_last_name = serializers.CharField(source='user.last_name')
     date = serializers.DateField(source='pickup_schedule.date')
@@ -47,4 +48,4 @@ class ReservationSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = models.EquipmentReservation
-        fields = ['user_first_name', 'user_last_name', 'date', 'start_time', 'end_time']
+        fields = ['reservation_id', 'user_first_name', 'user_last_name', 'date', 'start_time', 'end_time']
