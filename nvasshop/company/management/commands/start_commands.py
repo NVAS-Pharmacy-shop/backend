@@ -8,7 +8,7 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         subprocess.Popen(['celery', '-A', 'nvasshop', 'worker', '-l', 'INFO', '--pool=solo'])
 
-        subprocess.Popen(['py', 'run_consumer.py'])
+        subprocess.Popen(['python', 'run_consumer.py'])
 
         subprocess.Popen(['celery', '-A', 'nvasshop', 'beat', '-l', 'info'])
 

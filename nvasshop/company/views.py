@@ -259,7 +259,7 @@ class UserReservations(PermissionPolicyMixin, APIView):
 
                 user.save()
                 reservation.status = 'canceled'
-
+                reservation.pickup_schedule = None
                 reservation.save()
                 return Response({'msg': 'Reservation deleted successfully'}, status=status.HTTP_204_NO_CONTENT)
             else:

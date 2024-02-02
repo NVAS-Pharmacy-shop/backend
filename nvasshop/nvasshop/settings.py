@@ -27,7 +27,7 @@ SECRET_KEY = 'django-insecure-en^aj$^h@aqu=^7xzv6-0x+is-((zoe^gf1dljqio1f#4)k3^d
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 
 
 # Application definition
@@ -145,10 +145,10 @@ WSGI_APPLICATION = 'nvasshop.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'NVAS',
+        'NAME': 'postgres',
         'USER': 'postgres',
-        'PASSWORD': 'super',
-        'HOST': 'localhost',
+        'PASSWORD': 'postgres',
+        'HOST': 'db',
         'PORT': '5432',
     }
 }
