@@ -38,6 +38,9 @@ class Reserve_equipment(PermissionPolicyMixin, APIView):
 
     def post(self, request):
         user = request.user
+        user = User.objects.get(id=user.id)
+        if user.penal_amount > 2:
+            return Response({'error': 'You have too many penalties'}, status=status.HTTP_400_BAD_REQUEST)
         reserved_equipments = request.data['equipments']
         company_id = None
         if 'company_id' in request.data:
@@ -156,6 +159,28 @@ class Reserve_equipment(PermissionPolicyMixin, APIView):
 
         return Response({'msg': 'Equipment reserved', 'reservation': reservation.id}, status=status.HTTP_200_OK)
 
+    def get(self, request):
+        user = request.user
+
+
+        reservations = models.EquipmentReservation.objects.filter(user=user, status='delivered')
+        query = request.query_params
+        if 'date' in query:
+            sort = query['date']
+            if sort == 'asc':
+                reservations = reservations.order_by('pickup_schedule__date')
+            elif sort == 'desc':
+                reservations = reservations.order_by('-pickup_schedule__date')
+        serializer = serializers.DeliveredEquipmentSerializer(reservations, many=True)
+        return Response({'msg': 'Reservations retrieved', 'reservations': serializer.data}, status=status.HTTP_200_OK)
+
+class qrCodeView(APIView):
+    def get(self, request):
+        reservation = models.EquipmentReservation.objects.filter(user_id=request.user.id).all()
+        qr_codes = []
+        for res in reservation:
+            qr_codes.append(res.qrcode)
+        return Response({'msg': 'QR code retrieved', 'qr_code': qr_codes}, status=status.HTTP_200_OK)
 
 class CompanyReservations(PermissionPolicyMixin, APIView):
     permission_classes_per_method = {

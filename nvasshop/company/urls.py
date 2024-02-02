@@ -25,5 +25,7 @@ urlpatterns = [
     path("company_customers/", views.CompanyCustomers.as_view(), name="company-customers"),
     path("delivered-equipment/<int:id>/", views.HandlingEquipmentReservation.as_view(), name="delivered-equipment"),
     path("reservations/", views.HandlingEquipmentReservation.as_view(), name="reservations"),
-    path("contracts/", views.CompanyContract.as_view(), name="contracts")
+    path("contracts/", views.CompanyContract.as_view(), name="contracts"),
+    path("delivered-equipment/", views.Reserve_equipment.as_view(), name="delivered-equipment"),
+    path("qrcodes/", views.qrCodeView.as_view(), name="qrcodes"),
 ]

@@ -55,6 +55,7 @@ class EquipmentReservation(models.Model):
                                            on_delete=models.CASCADE, null=True, blank=True)
     user = models.ForeignKey('user.User', related_name='user_reservations', on_delete=models.CASCADE, default=0)
     status = models.CharField(max_length=15, choices=EquipmentStatus.choices, default=EquipmentStatus.PENDING)
+    qrcode = models.CharField(max_length=100, default="", null=True, blank=True)
 
 
 class ReservedEquipment(models.Model):

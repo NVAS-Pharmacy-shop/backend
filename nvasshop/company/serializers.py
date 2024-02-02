@@ -7,7 +7,12 @@ from user.models import User
 class EquipmentSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.Equipment
-        fields = ['id', 'name', 'description', 'quantity', 'type', 'company', 'reserved_quantity']
+        fields = ['id','name' , 'description', 'quantity', 'type', 'company', 'reserved_quantity']
+
+class EquipmentSerializer2(serializers.ModelSerializer):
+    class Meta:
+        model = models.Equipment
+        fields = ['id', 'description', 'quantity', 'type', 'company', 'reserved_quantity']
 
 
 class CompanyAdminSerializer(serializers.ModelSerializer):
@@ -57,7 +62,12 @@ class ReservationSerializer(serializers.ModelSerializer):
         model = models.EquipmentReservation
         fields = ['reservation_id', 'user_first_name', 'user_last_name', 'date', 'start_time', 'end_time']
 
-
+class DeliveredEquipmentSerializer(serializers.ModelSerializer):
+    pickup_schedule = PickupScheduleSerializer()
+    reserved_equipment = EquipmentSerializer2(many=True)
+    class Meta:
+        model = models.EquipmentReservation
+        fields = ['id', 'status', 'pickup_schedule', 'reserved_equipment']
 
 class PickupScheduleCalendarSerializer(serializers.ModelSerializer):
     user_first_name = serializers.SerializerMethodField()

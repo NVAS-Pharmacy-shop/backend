@@ -45,6 +45,15 @@ def send_reservation_email(reservation_id, recipient_email):
 
     qr_code_image = generate_qr_code(qr_code_data)
 
+    #save the qr code image to static folder
+    imgName = f'reservation_{reservation_info.id}.png'
+    imgPath = f'static/{imgName}'
+    img = open(imgPath, 'wb')
+    img.write(qr_code_image)
+    img.close()
+
+    reservation_info.qrcode = imgPath
+    reservation_info.save()
 
 
 
