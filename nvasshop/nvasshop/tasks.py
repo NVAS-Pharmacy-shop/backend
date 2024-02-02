@@ -33,6 +33,14 @@ def check_past_pickup_schedules():
         print(f"Error occurred: {e}")
 
 @shared_task
+def resetet_penal_amount():
+         with transaction.atomic():
+            all_users = User.objects.filter(role='employee')
+            for user in all_users:
+                user.penal_amount = 0
+                user.save()
+
+@shared_task
 def check_contracts():
     all_contracts = Contract.objects.all()
     for contract in all_contracts:

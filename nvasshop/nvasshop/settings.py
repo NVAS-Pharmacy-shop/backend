@@ -208,6 +208,10 @@ CELERY_BEAT_SCHEDULE = {
         'task': 'nvasshop.tasks.check_contracts',  # Correct the task path
         'schedule': 10.0,
     },
+    'reset-penal-amount': {
+        'task': 'nvasshop.tasks.resetet_penal_amount', 
+        'schedule': crontab(minute=0, hour=0, day_of_month='1'), 
+    },
 }
 
 # CHANNEL_LAYERS and CACHES should be changed to Redis in production
