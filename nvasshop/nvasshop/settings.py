@@ -9,9 +9,10 @@ https://docs.djangoproject.com/en/4.2/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.2/ref/settings/
 """
-
+import os
 from datetime import timedelta
 from pathlib import Path
+from celery.schedules import crontab
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -26,12 +27,14 @@ SECRET_KEY = 'django-insecure-en^aj$^h@aqu=^7xzv6-0x+is-((zoe^gf1dljqio1f#4)k3^d
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 
 
 # Application definition
 
 INSTALLED_APPS = [
+    'daphne',
+    'channels',
     'company.apps.CompanyConfig',
     'django.contrib.admin',
     'django.contrib.auth',
@@ -39,15 +42,19 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django_celery_beat',
     'user',
     'rest_framework',
+    'drf_yasg',
     'rest_framework_simplejwt.token_blacklist',
     'corsheaders',
+    'locationsim',
 ]
 
-CORS_ALLOWED_ORIGINS = [
-    'http://localhost:3000',
-]
+ASGI_APPLICATION = 'nvasshop.asgi.application'
+CORS_ORIGIN_ALLOW_ALL = True
+# CORS_ALLOWED_ORIGINS = [
+# ]
 
 
 REST_FRAMEWORK = {
@@ -87,7 +94,7 @@ SIMPLE_JWT = {
 }
 
 MIDDLEWARE = [
-    'django.middleware.security.SecurityMiddleware',
+    #'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -103,7 +110,9 @@ ROOT_URLCONF = 'nvasshop.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [
+            'nvasshop/templates',
+        ],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -136,10 +145,10 @@ WSGI_APPLICATION = 'nvasshop.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'NVAS',
+        'NAME': 'postgres',
         'USER': 'postgres',
-        'PASSWORD': 'super',
-        'HOST': 'localhost',
+        'PASSWORD': 'postgres',
+        'HOST': 'db',
         'PORT': '5432',
     }
 }
@@ -170,7 +179,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'CET'
+TIME_ZONE = 'UTC'
 
 USE_I18N = True
 
@@ -179,15 +188,43 @@ USE_TZ = True
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
-
+# STATIC_ROOT = os.path.join(BASE_DIR, "static")
 STATIC_URL = 'static/'
-
+STATICFILES_DIRS = [
+    os.path.join(BASE_DIR, "static"),
+]
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+CELERY_BROKER_URL = 'amqp://guest:guest@localhost:5672/'
 
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",  # Adjust this to your React app's origin
-]
+CELERY_BEAT_SCHEDULE = {
+    'check-past-pickup-schedules': {
+        'task': 'nvasshop.tasks.check_past_pickup_schedules', 
+        'schedule': crontab(minute='*/30'),  # Run every 30 minutes
+    },
+    'check-contracts': {
+        'task': 'nvasshop.tasks.check_contracts',  # Correct the task path
+        'schedule': 10.0,
+    },
+    'reset-penal-amount': {
+        'task': 'nvasshop.tasks.resetet_penal_amount', 
+        'schedule': crontab(minute=0, hour=0, day_of_month='1'), 
+    },
+}
+
+# CHANNEL_LAYERS and CACHES should be changed to Redis in production
+
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels.layers.InMemoryChannelLayer',
+    },
+}
+
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+    }
+}
